@@ -102,14 +102,14 @@ export const NavHeader = () => {
             className="font-mono-tight text-xs text-zinc-950/60 hover:bg-zinc-950/5 hover:text-zinc-950 dark:text-zinc-50/60 dark:hover:bg-zinc-50/5 dark:hover:text-zinc-50"
             asChild
           >
-            <Link href="/auth/v1/login">Sign in</Link>
+            <Link href="/auth/v3/login">Sign in</Link>
           </Button>
           <Button
             size="sm"
             className="rounded-full border border-zinc-950/10 bg-zinc-950/5 font-mono-tight text-xs text-zinc-950 hover:bg-zinc-950/10 dark:border-zinc-50/10 dark:bg-zinc-50/5 dark:text-zinc-50 dark:hover:bg-zinc-50/10"
             asChild
           >
-            <Link href="/auth/v1/register">Get started</Link>
+            <Link href="/auth/v3/signup">Get started</Link>
           </Button>
         </div>
       </div>
