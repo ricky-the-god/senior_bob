@@ -1,22 +1,4 @@
-import {
-  Banknote,
-  Calendar,
-  ChartBar,
-  Fingerprint,
-  Forklift,
-  Gauge,
-  GraduationCap,
-  Kanban,
-  LayoutDashboard,
-  Lock,
-  type LucideIcon,
-  Mail,
-  MessageSquare,
-  ReceiptText,
-  ShoppingBag,
-  SquareArrowUpRight,
-  Users,
-} from "lucide-react";
+import { BookOpen, FileText, Folder, type LucideIcon, Search, Trash2, Users } from "lucide-react";
 
 export interface NavSubItem {
   title: string;
@@ -35,6 +17,7 @@ export interface NavMainItem {
   comingSoon?: boolean;
   newTab?: boolean;
   isNew?: boolean;
+  action?: "search"; // Special action items
 }
 
 export interface NavGroup {
@@ -46,115 +29,54 @@ export interface NavGroup {
 export const sidebarItems: NavGroup[] = [
   {
     id: 1,
-    label: "Dashboards",
     items: [
       {
-        title: "Default",
-        url: "/dashboard/default",
-        icon: LayoutDashboard,
-      },
-      {
-        title: "CRM",
-        url: "/dashboard/crm",
-        icon: ChartBar,
-      },
-      {
-        title: "Finance",
-        url: "/dashboard/finance",
-        icon: Banknote,
-      },
-      {
-        title: "Analytics",
-        url: "/dashboard/coming-soon",
-        icon: Gauge,
-        comingSoon: true,
-      },
-      {
-        title: "E-commerce",
-        url: "/dashboard/coming-soon",
-        icon: ShoppingBag,
-        comingSoon: true,
-      },
-      {
-        title: "Academy",
-        url: "/dashboard/coming-soon",
-        icon: GraduationCap,
-        comingSoon: true,
-      },
-      {
-        title: "Logistics",
-        url: "/dashboard/coming-soon",
-        icon: Forklift,
-        comingSoon: true,
+        title: "Search",
+        url: "#",
+        icon: Search,
+        action: "search",
       },
     ],
   },
   {
     id: 2,
-    label: "Pages",
+    label: "Workspace",
     items: [
       {
-        title: "Email",
-        url: "/dashboard/coming-soon",
-        icon: Mail,
-        comingSoon: true,
+        title: "Drafts",
+        url: "/dashboard/drafts",
+        icon: FileText,
       },
       {
-        title: "Chat",
-        url: "/dashboard/coming-soon",
-        icon: MessageSquare,
-        comingSoon: true,
+        title: "All Projects",
+        url: "/dashboard/projects",
+        icon: Folder,
       },
       {
-        title: "Calendar",
-        url: "/dashboard/coming-soon",
-        icon: Calendar,
-        comingSoon: true,
-      },
-      {
-        title: "Kanban",
-        url: "/dashboard/coming-soon",
-        icon: Kanban,
-        comingSoon: true,
-      },
-      {
-        title: "Invoice",
-        url: "/dashboard/coming-soon",
-        icon: ReceiptText,
-        comingSoon: true,
-      },
-      {
-        title: "Users",
-        url: "/dashboard/coming-soon",
-        icon: Users,
-        comingSoon: true,
-      },
-      {
-        title: "Roles",
-        url: "/dashboard/coming-soon",
-        icon: Lock,
-        comingSoon: true,
-      },
-      {
-        title: "Authentication",
-        url: "/auth",
-        icon: Fingerprint,
-        subItems: [
-          { title: "Login", url: "/auth/v3/login", newTab: true },
-          { title: "Signup", url: "/auth/v3/signup", newTab: true },
-        ],
+        title: "Resources",
+        url: "/dashboard/resources",
+        icon: BookOpen,
       },
     ],
   },
   {
     id: 3,
-    label: "Misc",
+    label: "Team",
     items: [
       {
-        title: "Others",
-        url: "/dashboard/coming-soon",
-        icon: SquareArrowUpRight,
-        comingSoon: true,
+        title: "Team Projects",
+        url: "/dashboard/team",
+        icon: Users,
+      },
+    ],
+  },
+  {
+    id: 4,
+    items: [
+      {
+        title: "Trash",
+        url: "/dashboard/trash",
+        icon: Trash2,
       },
     ],
   },
