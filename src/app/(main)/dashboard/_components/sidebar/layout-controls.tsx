@@ -1,6 +1,7 @@
 "use client";
 
 import { Settings } from "lucide-react";
+import { useShallow } from "zustand/react/shallow";
 
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -16,75 +17,71 @@ import {
   applySidebarCollapsible,
   applySidebarVariant,
 } from "@/lib/preferences/layout-utils";
-import { PREFERENCE_DEFAULTS } from "@/lib/preferences/preferences-config";
+import { PREFERENCE_DEFAULTS, type PreferenceKey } from "@/lib/preferences/preferences-config";
 import { persistPreference } from "@/lib/preferences/preferences-storage";
 import { THEME_PRESET_OPTIONS, type ThemeMode, type ThemePreset } from "@/lib/preferences/theme";
 import { applyThemePreset } from "@/lib/preferences/theme-utils";
 import { usePreferencesStore } from "@/stores/preferences/preferences-provider";
 
+// Factory: guard empty → apply DOM → set store → persist
+function makeHandler<T extends string>(applyFn: ((v: T) => void) | null, setFn: (v: T) => void, key: PreferenceKey) {
+  return (value: T | "") => {
+    if (!value) return;
+    applyFn?.(value);
+    setFn(value);
+    persistPreference(key, value);
+  };
+}
+
 export function LayoutControls() {
-  const themeMode = usePreferencesStore((s) => s.themeMode);
-  const resolvedThemeMode = usePreferencesStore((s) => s.resolvedThemeMode);
-  const setThemeMode = usePreferencesStore((s) => s.setThemeMode);
-  const themePreset = usePreferencesStore((s) => s.themePreset);
-  const setThemePreset = usePreferencesStore((s) => s.setThemePreset);
-  const contentLayout = usePreferencesStore((s) => s.contentLayout);
-  const setContentLayout = usePreferencesStore((s) => s.setContentLayout);
-  const navbarStyle = usePreferencesStore((s) => s.navbarStyle);
-  const setNavbarStyle = usePreferencesStore((s) => s.setNavbarStyle);
-  const variant = usePreferencesStore((s) => s.sidebarVariant);
-  const setSidebarVariant = usePreferencesStore((s) => s.setSidebarVariant);
-  const collapsible = usePreferencesStore((s) => s.sidebarCollapsible);
-  const setSidebarCollapsible = usePreferencesStore((s) => s.setSidebarCollapsible);
-  const font = usePreferencesStore((s) => s.font);
-  const setFont = usePreferencesStore((s) => s.setFont);
+  const {
+    themeMode,
+    resolvedThemeMode,
+    setThemeMode,
+    themePreset,
+    setThemePreset,
+    contentLayout,
+    setContentLayout,
+    navbarStyle,
+    setNavbarStyle,
+    sidebarVariant: variant,
+    setSidebarVariant,
+    sidebarCollapsible: collapsible,
+    setSidebarCollapsible,
+    font,
+    setFont,
+  } = usePreferencesStore(
+    useShallow((s) => ({
+      themeMode: s.themeMode,
+      resolvedThemeMode: s.resolvedThemeMode,
+      setThemeMode: s.setThemeMode,
+      themePreset: s.themePreset,
+      setThemePreset: s.setThemePreset,
+      contentLayout: s.contentLayout,
+      setContentLayout: s.setContentLayout,
+      navbarStyle: s.navbarStyle,
+      setNavbarStyle: s.setNavbarStyle,
+      sidebarVariant: s.sidebarVariant,
+      setSidebarVariant: s.setSidebarVariant,
+      sidebarCollapsible: s.sidebarCollapsible,
+      setSidebarCollapsible: s.setSidebarCollapsible,
+      font: s.font,
+      setFont: s.setFont,
+    })),
+  );
 
-  const onThemePresetChange = async (preset: ThemePreset) => {
-    applyThemePreset(preset);
-    setThemePreset(preset);
-    persistPreference("theme_preset", preset);
-  };
-
-  const onThemeModeChange = async (mode: ThemeMode | "") => {
-    if (!mode) return;
-    setThemeMode(mode);
-    persistPreference("theme_mode", mode);
-  };
-
-  const onContentLayoutChange = async (layout: ContentLayout | "") => {
-    if (!layout) return;
-    applyContentLayout(layout);
-    setContentLayout(layout);
-    persistPreference("content_layout", layout);
-  };
-
-  const onNavbarStyleChange = async (style: NavbarStyle | "") => {
-    if (!style) return;
-    applyNavbarStyle(style);
-    setNavbarStyle(style);
-    persistPreference("navbar_style", style);
-  };
-
-  const onSidebarStyleChange = async (value: SidebarVariant | "") => {
-    if (!value) return;
-    setSidebarVariant(value);
-    applySidebarVariant(value);
-    persistPreference("sidebar_variant", value);
-  };
-
-  const onSidebarCollapseModeChange = async (value: SidebarCollapsible | "") => {
-    if (!value) return;
-    setSidebarCollapsible(value);
-    applySidebarCollapsible(value);
-    persistPreference("sidebar_collapsible", value);
-  };
-
-  const onFontChange = async (value: FontKey | "") => {
-    if (!value) return;
-    applyFont(value);
-    setFont(value);
-    persistPreference("font", value);
-  };
+  const onThemePresetChange = makeHandler<ThemePreset>(applyThemePreset, setThemePreset, "theme_preset");
+  // Theme mode: DOM is managed by the provider's store subscription — no direct apply needed.
+  const onThemeModeChange = makeHandler<ThemeMode>(null, setThemeMode, "theme_mode");
+  const onContentLayoutChange = makeHandler<ContentLayout>(applyContentLayout, setContentLayout, "content_layout");
+  const onNavbarStyleChange = makeHandler<NavbarStyle>(applyNavbarStyle, setNavbarStyle, "navbar_style");
+  const onSidebarStyleChange = makeHandler<SidebarVariant>(applySidebarVariant, setSidebarVariant, "sidebar_variant");
+  const onSidebarCollapseModeChange = makeHandler<SidebarCollapsible>(
+    applySidebarCollapsible,
+    setSidebarCollapsible,
+    "sidebar_collapsible",
+  );
+  const onFontChange = makeHandler<FontKey>(applyFont, setFont, "font");
 
   const handleRestore = () => {
     onThemePresetChange(PREFERENCE_DEFAULTS.theme_preset);

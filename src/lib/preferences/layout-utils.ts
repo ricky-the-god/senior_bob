@@ -1,24 +1,9 @@
-export function applyContentLayout(value: "centered" | "full-width") {
-  const root = document.documentElement;
-  root.setAttribute("data-content-layout", value);
+function setRootAttr(attr: string, value: string) {
+  document.documentElement.setAttribute(attr, value);
 }
 
-export function applyNavbarStyle(value: "sticky" | "scroll") {
-  const root = document.documentElement;
-  root.setAttribute("data-navbar-style", value);
-}
-
-export function applySidebarVariant(value: string) {
-  const root = document.documentElement;
-  root.setAttribute("data-sidebar-variant", value);
-}
-
-export function applySidebarCollapsible(value: string) {
-  const root = document.documentElement;
-  root.setAttribute("data-sidebar-collapsible", value);
-}
-
-export function applyFont(value: string) {
-  const root = document.documentElement;
-  root.setAttribute("data-font", value);
-}
+export const applyContentLayout = (value: "centered" | "full-width") => setRootAttr("data-content-layout", value);
+export const applyNavbarStyle = (value: "sticky" | "scroll") => setRootAttr("data-navbar-style", value);
+export const applySidebarVariant = (value: string) => setRootAttr("data-sidebar-variant", value);
+export const applySidebarCollapsible = (value: string) => setRootAttr("data-sidebar-collapsible", value);
+export const applyFont = (value: string) => setRootAttr("data-font", value);
