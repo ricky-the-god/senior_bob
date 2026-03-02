@@ -93,12 +93,24 @@ export function SignupForm() {
 
   const onSubmit = async (data: SignupFormData) => {
     setIsLoading(true);
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-    setIsLoading(false);
-    toast.success("Account created!", {
-      description: `Welcome to SeniorBob, ${data.name}`,
+    const supabase = createClient();
+    const { error } = await supabase.auth.signUp({
+      email: data.email,
+      password: data.password,
+      options: {
+        data: { name: data.name },
+        emailRedirectTo: `${window.location.origin}/auth/callback`,
+      },
     });
+    if (error) {
+      toast.error("Sign up failed", { description: error.message });
+      setIsLoading(false);
+      return;
+    }
+    toast.success("Check your email", {
+      description: "We sent you a confirmation link to activate your account.",
+    });
+    setIsLoading(false);
   };
 
   const handleGoogleAuth = async () => {
