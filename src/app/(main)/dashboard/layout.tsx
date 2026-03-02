@@ -7,6 +7,7 @@ import { AppSidebar } from "@/app/(main)/dashboard/_components/sidebar/app-sideb
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { users } from "@/data/users";
 import { SIDEBAR_COLLAPSIBLE_VALUES, SIDEBAR_VARIANT_VALUES } from "@/lib/preferences/layout";
+import { createClient } from "@/lib/supabase/server";
 import { cn } from "@/lib/utils";
 import { getPreference } from "@/server/server-actions";
 
@@ -18,15 +19,26 @@ import { ThemeSwitcher } from "./_components/sidebar/theme-switcher";
 export default async function Layout({ children }: Readonly<{ children: ReactNode }>) {
   const cookieStore = await cookies();
   const defaultOpen = cookieStore.get("sidebar_state")?.value !== "false";
-  const [variant, collapsible] = await Promise.all([
+  const [variant, collapsible, supabase] = await Promise.all([
     getPreference("sidebar_variant", SIDEBAR_VARIANT_VALUES, "inset"),
     getPreference("sidebar_collapsible", SIDEBAR_COLLAPSIBLE_VALUES, "icon"),
+    createClient(),
   ]);
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  const sidebarUser = {
+    name: user?.user_metadata?.full_name ?? user?.user_metadata?.name ?? user?.email?.split("@")[0] ?? "User",
+    email: user?.email ?? "",
+    avatar: user?.user_metadata?.avatar_url ?? "",
+  };
 
   return (
     <SearchWrapper>
       <SidebarProvider defaultOpen={defaultOpen}>
-        <AppSidebar variant={variant} collapsible={collapsible} />
+        <AppSidebar variant={variant} collapsible={collapsible} user={sidebarUser} />
         <SidebarInset
           className={cn(
             "[html[data-content-layout=centered]_&]:mx-auto! [html[data-content-layout=centered]_&]:max-w-screen-2xl!",

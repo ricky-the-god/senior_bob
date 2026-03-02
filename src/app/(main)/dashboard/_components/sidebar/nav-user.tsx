@@ -1,5 +1,7 @@
 "use client";
 
+import { useRouter } from "next/navigation";
+
 import { CircleUser, CreditCard, EllipsisVertical, LogOut, MessageSquareDot } from "lucide-react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -13,6 +15,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { SidebarMenu, SidebarMenuButton, SidebarMenuItem, useSidebar } from "@/components/ui/sidebar";
+import { createClient } from "@/lib/supabase/client";
 import { cn, getInitials } from "@/lib/utils";
 
 interface User {
@@ -35,7 +38,14 @@ const UserCard = ({ user, grayscale = false }: { user: User; grayscale?: boolean
 );
 
 export function NavUser({ user }: { readonly user: User }) {
+  const router = useRouter();
   const { isMobile } = useSidebar();
+
+  const handleSignOut = async () => {
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    router.push("/auth/v3/login");
+  };
 
   return (
     <SidebarMenu>
@@ -77,7 +87,7 @@ export function NavUser({ user }: { readonly user: User }) {
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>
+            <DropdownMenuItem onSelect={handleSignOut}>
               <LogOut />
               Log out
             </DropdownMenuItem>
