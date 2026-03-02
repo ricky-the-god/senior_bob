@@ -43,7 +43,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                 <div className="flex size-7 items-center justify-center rounded-md border border-sidebar-border bg-sidebar-accent/50">
                   <Command className="size-3.5" />
                 </div>
-                <span className="font-medium font-mono-tight text-sm">ultimate_planner</span>
+                <span className="font-medium font-mono-tight text-sm">seniorbob</span>
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>

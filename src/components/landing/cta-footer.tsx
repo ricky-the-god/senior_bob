@@ -77,7 +77,7 @@ export const CTAFooter = () => {
                 />
               </svg>
             </div>
-            <span className="font-mono-tight text-xs text-zinc-950/60 dark:text-zinc-50/60">ultimate_planner</span>
+            <span className="font-mono-tight text-xs text-zinc-950/60 dark:text-zinc-50/60">seniorbob</span>
           </div>
 
           {/* Links */}
@@ -95,7 +95,7 @@ export const CTAFooter = () => {
 
           {/* Copyright */}
           <p className="font-mono-tight text-xs text-zinc-950/30 dark:text-zinc-50/30">
-            &copy; {new Date().getFullYear()} Ultimate Planner
+            &copy; {new Date().getFullYear()} SeniorBob
           </p>
         </div>
       </footer>

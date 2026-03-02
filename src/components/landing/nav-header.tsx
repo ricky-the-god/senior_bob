@@ -48,7 +48,7 @@ export const NavHeader = () => {
               />
             </svg>
           </div>
-          <span className="font-mono-tight font-normal text-sm text-zinc-950 dark:text-zinc-50">ultimate_planner</span>
+          <span className="font-mono-tight font-normal text-sm text-zinc-950 dark:text-zinc-50">seniorbob</span>
         </Link>
 
         {/* Center nav - glassmorphism pill */}

@@ -79,9 +79,7 @@ export default function AuthLayout({ children }: Readonly<{ children: ReactNode 
                   />
                 </svg>
               </div>
-              <span className="font-mono-tight font-normal text-sm text-zinc-950 dark:text-zinc-50">
-                ultimate_planner
-              </span>
+              <span className="font-mono-tight font-normal text-sm text-zinc-950 dark:text-zinc-50">seniorbob</span>
             </Link>
           </motion.div>
 
@@ -127,7 +125,7 @@ export default function AuthLayout({ children }: Readonly<{ children: ReactNode 
             transition={{ duration: 0.5, delay: 0.4 }}
             className="font-mono-tight text-xs text-zinc-950/40 dark:text-zinc-50/40"
           >
-            &copy; {new Date().getFullYear()} ultimate_planner. All rights reserved.
+            &copy; {new Date().getFullYear()} seniorbob. All rights reserved.
           </motion.p>
         </div>
       </footer>

@@ -11,6 +11,7 @@ import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 
+import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 
 import { AuthDivider } from "./auth-divider";
@@ -96,16 +97,22 @@ export function SignupForm() {
     await new Promise((resolve) => setTimeout(resolve, 1500));
     setIsLoading(false);
     toast.success("Account created!", {
-      description: `Welcome to Ultimate Planner, ${data.name}`,
+      description: `Welcome to SeniorBob, ${data.name}`,
     });
   };
 
   const handleGoogleAuth = async () => {
     setIsLoading(true);
-    // Simulate OAuth flow
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-    setIsLoading(false);
-    toast.info("Google OAuth would redirect here");
+    const supabase = createClient();
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: { redirectTo: `${window.location.origin}/auth/callback` },
+    });
+    if (error) {
+      toast.error("Google sign in failed", { description: error.message });
+      setIsLoading(false);
+    }
+    // On success the browser redirects — keep loading state
   };
 
   return (

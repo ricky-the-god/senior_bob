@@ -11,6 +11,7 @@ import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 
+import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 
 import { AuthDivider } from "./auth-divider";
@@ -75,10 +76,16 @@ export function LoginForm() {
 
   const handleGoogleAuth = async () => {
     setIsLoading(true);
-    // Simulate OAuth flow
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-    setIsLoading(false);
-    toast.info("Google OAuth would redirect here");
+    const supabase = createClient();
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: { redirectTo: `${window.location.origin}/auth/callback` },
+    });
+    if (error) {
+      toast.error("Google sign in failed", { description: error.message });
+      setIsLoading(false);
+    }
+    // On success the browser redirects — keep loading state
   };
 
   return (
@@ -88,9 +95,7 @@ export function LoginForm() {
         <h1 className="font-[var(--font-cormorant-garamond)] font-semibold text-3xl text-foreground tracking-tight sm:text-4xl">
           Welcome back
         </h1>
-        <p className="mt-2 font-[var(--font-roboto)] text-muted-foreground text-sm">
-          Sign in to continue to Ultimate Planner
-        </p>
+        <p className="mt-2 font-[var(--font-roboto)] text-muted-foreground text-sm">Sign in to continue to SeniorBob</p>
       </motion.div>
 
       {/* Google OAuth Button */}
