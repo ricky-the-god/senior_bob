@@ -3,7 +3,7 @@
 import { useState } from "react";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { motion } from "framer-motion";
@@ -51,6 +51,7 @@ const staggerItem = {
 
 export function LoginForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
@@ -78,7 +79,9 @@ export function LoginForm() {
       setIsLoading(false);
       return;
     }
-    router.push("/dashboard/default");
+    const redirectTo = searchParams.get("redirectTo");
+    const safePath = redirectTo?.startsWith("/") && !redirectTo.startsWith("//") ? redirectTo : "/dashboard/default";
+    router.push(safePath);
   };
 
   const handleGoogleAuth = async () => {
