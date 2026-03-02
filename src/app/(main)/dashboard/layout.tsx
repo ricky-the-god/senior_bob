@@ -11,6 +11,7 @@ import { createClient } from "@/lib/supabase/server";
 import { cn } from "@/lib/utils";
 import { getPreference } from "@/server/server-actions";
 
+import { LogoutButton } from "./_components/header/logout-button";
 import { AccountSwitcher } from "./_components/sidebar/account-switcher";
 import { LayoutControls } from "./_components/sidebar/layout-controls";
 import { SearchWrapper } from "./_components/sidebar/search-wrapper";
@@ -63,6 +64,7 @@ export default async function Layout({ children }: Readonly<{ children: ReactNod
                 <LayoutControls />
                 <ThemeSwitcher />
                 <AccountSwitcher users={users} />
+                <LogoutButton />
               </div>
             </div>
           </header>
