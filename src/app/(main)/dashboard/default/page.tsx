@@ -1,10 +1,9 @@
-"use client";
+import Link from "next/link";
 
-import { useState } from "react";
-
-import { Clock, Grid3X3, List, MoreVertical } from "lucide-react";
-
+import { createClient } from "@/lib/supabase/server";
 import { cn } from "@/lib/utils";
+
+import { RecentProjectsSection } from "./_components/recent-projects-section";
 
 // ─── Template Types ────────────────────────────────────────────────────────────
 
@@ -37,11 +36,10 @@ function BlankThumb() {
       className="h-full w-full"
     >
       <rect width="120" height="90" fill="#0a0a0a" />
-      {[16, 26, 36, 46, 56, 66, 76].map((y) => (
-        <line key={y} x1="10" y1={y} x2="110" y2={y} stroke="#1f1f1f" strokeWidth="0.5" />
-      ))}
-      <rect x="55" y="37" width="10" height="16" rx="2" fill="#3b82f6" opacity="0.7" />
-      <rect x="50" y="42" width="20" height="6" rx="2" fill="#3b82f6" opacity="0.7" />
+      {/* vertical bar */}
+      <rect x="57" y="30" width="6" height="30" rx="3" fill="white" />
+      {/* horizontal bar */}
+      <rect x="42" y="42" width="36" height="6" rx="3" fill="white" />
     </svg>
   );
 }
@@ -127,15 +125,12 @@ function MicroservicesThumb() {
       <rect x="6" y="8" width="28" height="18" rx="3" fill="#1a1a1a" stroke="#2a2a2a" strokeWidth="0.8" />
       <rect x="10" y="13" width="20" height="3" rx="1" fill="#10b981" opacity="0.7" />
       <rect x="10" y="19" width="14" height="2" rx="1" fill="#333" />
-
       <rect x="86" y="8" width="28" height="18" rx="3" fill="#1a1a1a" stroke="#2a2a2a" strokeWidth="0.8" />
       <rect x="90" y="13" width="20" height="3" rx="1" fill="#f59e0b" opacity="0.7" />
       <rect x="90" y="19" width="14" height="2" rx="1" fill="#333" />
-
       <rect x="6" y="64" width="28" height="18" rx="3" fill="#1a1a1a" stroke="#2a2a2a" strokeWidth="0.8" />
       <rect x="10" y="69" width="20" height="3" rx="1" fill="#8b5cf6" opacity="0.7" />
       <rect x="10" y="75" width="14" height="2" rx="1" fill="#333" />
-
       <rect x="86" y="64" width="28" height="18" rx="3" fill="#1a1a1a" stroke="#2a2a2a" strokeWidth="0.8" />
       <rect x="90" y="69" width="20" height="3" rx="1" fill="#ec4899" opacity="0.7" />
       <rect x="90" y="75" width="14" height="2" rx="1" fill="#333" />
@@ -158,13 +153,12 @@ function ApiThumb() {
       className="h-full w-full"
     >
       <rect width="120" height="90" fill="#0a0a0a" />
-      {/* Endpoints */}
       {[
-        { y: 12, method: "#10b981", label: "GET", path: 60 },
-        { y: 27, method: "#3b82f6", label: "POST", path: 52 },
-        { y: 42, method: "#f59e0b", label: "PUT", path: 56 },
-        { y: 57, method: "#ef4444", label: "DEL", path: 48 },
-        { y: 72, method: "#8b5cf6", label: "GET", path: 66 },
+        { y: 12, method: "#10b981", path: 60 },
+        { y: 27, method: "#3b82f6", path: 52 },
+        { y: 42, method: "#f59e0b", path: 56 },
+        { y: 57, method: "#ef4444", path: 48 },
+        { y: 72, method: "#8b5cf6", path: 66 },
       ].map(({ y, method, path }) => (
         <g key={y}>
           <rect x="8" y={y} width="104" height="11" rx="2" fill="#111" stroke="#1f1f1f" strokeWidth="0.5" />
@@ -186,28 +180,22 @@ function SystemThumb() {
       className="h-full w-full"
     >
       <rect width="120" height="90" fill="#0a0a0a" />
-      {/* Client */}
       <rect x="6" y="34" width="24" height="16" rx="2.5" fill="#1a1a1a" stroke="#3b82f6" strokeWidth="0.8" />
       <rect x="10" y="39" width="16" height="2.5" rx="1" fill="#3b82f6" opacity="0.7" />
       <rect x="10" y="44" width="10" height="2" rx="1" fill="#333" />
-      {/* Load balancer */}
       <rect x="44" y="22" width="28" height="14" rx="2.5" fill="#1a1a1a" stroke="#f59e0b" strokeWidth="0.8" />
       <rect x="49" y="26" width="18" height="2.5" rx="1" fill="#f59e0b" opacity="0.7" />
       <rect x="52" y="31" width="12" height="2" rx="1" fill="#333" />
-      {/* Services */}
       <rect x="44" y="52" width="26" height="14" rx="2.5" fill="#1a1a1a" stroke="#10b981" strokeWidth="0.8" />
       <rect x="48" y="56" width="18" height="2.5" rx="1" fill="#10b981" opacity="0.7" />
       <rect x="48" y="61" width="12" height="2" rx="1" fill="#333" />
-      {/* Database */}
       <ellipse cx="99" cy="30" rx="13" ry="7" fill="#1a1a1a" stroke="#8b5cf6" strokeWidth="0.8" />
       <line x1="86" y1="30" x2="86" y2="42" stroke="#8b5cf6" strokeWidth="0.8" />
       <line x1="112" y1="30" x2="112" y2="42" stroke="#8b5cf6" strokeWidth="0.8" />
       <path d="M86,42 Q99,49 112,42" fill="none" stroke="#8b5cf6" strokeWidth="0.8" />
-      {/* Cache */}
       <rect x="86" y="57" width="24" height="14" rx="2.5" fill="#1a1a1a" stroke="#ec4899" strokeWidth="0.8" />
       <rect x="90" y="61" width="16" height="2.5" rx="1" fill="#ec4899" opacity="0.7" />
       <rect x="90" y="66" width="10" height="2" rx="1" fill="#333" />
-      {/* Arrows */}
       <line x1="30" y1="42" x2="44" y2="32" stroke="#555" strokeWidth="0.7" strokeDasharray="2,2" />
       <line x1="30" y1="42" x2="44" y2="59" stroke="#555" strokeWidth="0.7" strokeDasharray="2,2" />
       <line x1="72" y1="29" x2="86" y2="29" stroke="#555" strokeWidth="0.7" strokeDasharray="2,2" />
@@ -236,20 +224,18 @@ function TemplateThumbnail({ id }: { id: TemplateId }) {
 // ─── Template Card ─────────────────────────────────────────────────────────────
 
 function TemplateCard({ template }: { template: Template }) {
-  const [hovered, setHovered] = useState(false);
+  const href = template.id === "blank" ? "/dashboard/new" : `/dashboard/new?template=${template.id}`;
 
   return (
-    <button
-      type="button"
-      className="flex flex-shrink-0 cursor-pointer flex-col items-start gap-2.5 text-left outline-none"
+    <Link
+      href={href}
+      className="flex flex-shrink-0 flex-col items-start gap-2.5 text-left outline-none"
       style={{ width: 180 }}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
     >
       <div
         className={cn(
           "w-full overflow-hidden rounded-xl border transition-all duration-150",
-          hovered ? "border-blue-500/50 shadow-blue-500/10 shadow-lg ring-1 ring-blue-500/20" : "border-border",
+          "border-border hover:border-blue-500/50 hover:shadow-blue-500/10 hover:shadow-lg hover:ring-1 hover:ring-blue-500/20",
         )}
         style={{ aspectRatio: "4/3" }}
       >
@@ -259,57 +245,20 @@ function TemplateCard({ template }: { template: Template }) {
         <p className="font-medium text-foreground text-sm leading-tight">{template.name}</p>
         <p className="mt-0.5 text-muted-foreground text-xs leading-tight">{template.description}</p>
       </div>
-    </button>
-  );
-}
-
-// ─── Recent Project Card ───────────────────────────────────────────────────────
-
-type RecentProject = {
-  id: string;
-  name: string;
-  updatedAt: string;
-  templateId: TemplateId;
-};
-
-function RecentProjectCard({ project }: { project: RecentProject }) {
-  return (
-    <div className="group flex cursor-pointer flex-col">
-      <div
-        className={cn(
-          "w-full overflow-hidden rounded-lg border transition-all duration-150",
-          "border-border group-hover:border-blue-500/50 group-hover:shadow-blue-500/10 group-hover:shadow-md",
-        )}
-        style={{ aspectRatio: "4/3" }}
-      >
-        <TemplateThumbnail id={project.templateId} />
-      </div>
-      <div className="mt-2 flex items-start justify-between gap-1 px-0.5">
-        <div className="min-w-0">
-          <p className="truncate font-medium text-foreground text-xs leading-tight">{project.name}</p>
-          <div className="mt-0.5 flex items-center gap-1 text-[11px] text-muted-foreground">
-            <Clock className="size-2.5 flex-shrink-0" />
-            <span>{project.updatedAt}</span>
-          </div>
-        </div>
-        <button
-          type="button"
-          className="mt-0.5 flex-shrink-0 rounded p-1 opacity-0 transition-all hover:bg-muted group-hover:opacity-100"
-        >
-          <MoreVertical className="size-3 text-muted-foreground" />
-        </button>
-      </div>
-    </div>
+    </Link>
   );
 }
 
 // ─── Page ──────────────────────────────────────────────────────────────────────
 
-// Swap this out for real Supabase data once projects are wired up
-const RECENT_PROJECTS: RecentProject[] = [];
+export default async function Page() {
+  const supabase = await createClient();
 
-export default function Page() {
-  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  const { data: projects } = await supabase
+    .from("projects")
+    .select("id, name, updated_at")
+    .order("updated_at", { ascending: false })
+    .limit(20);
 
   return (
     <div className="flex flex-col gap-12">
@@ -325,49 +274,7 @@ export default function Page() {
       </section>
 
       {/* ── Recent projects ──────────────────────────────────────────────────── */}
-      <section>
-        <div className="mb-5 flex items-center justify-between">
-          <h2 className="font-medium text-muted-foreground text-xs uppercase tracking-wide">Recent projects</h2>
-          <div className="flex items-center overflow-hidden rounded-md border border-border">
-            <button
-              type="button"
-              onClick={() => setViewMode("grid")}
-              className={cn(
-                "p-1.5 transition-colors",
-                viewMode === "grid"
-                  ? "bg-muted text-foreground"
-                  : "text-muted-foreground hover:bg-muted/50 hover:text-foreground",
-              )}
-            >
-              <Grid3X3 className="size-3.5" />
-            </button>
-            <button
-              type="button"
-              onClick={() => setViewMode("list")}
-              className={cn(
-                "border-border border-l p-1.5 transition-colors",
-                viewMode === "list"
-                  ? "bg-muted text-foreground"
-                  : "text-muted-foreground hover:bg-muted/50 hover:text-foreground",
-              )}
-            >
-              <List className="size-3.5" />
-            </button>
-          </div>
-        </div>
-
-        {RECENT_PROJECTS.length === 0 ? (
-          <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-border border-dashed py-16 text-center">
-            <p className="text-muted-foreground text-sm">No projects yet — pick a template above to get started.</p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
-            {RECENT_PROJECTS.map((p) => (
-              <RecentProjectCard key={p.id} project={p} />
-            ))}
-          </div>
-        )}
-      </section>
+      <RecentProjectsSection projects={projects ?? []} />
     </div>
   );
 }
