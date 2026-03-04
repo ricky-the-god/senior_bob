@@ -1,0 +1,68 @@
+"use client";
+
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+
+import { Database, Info, LayoutDashboard, PenLine } from "lucide-react";
+
+import { cn } from "@/lib/utils";
+
+type NavItem = {
+  href: string;
+  label: string;
+  icon: React.ElementType;
+};
+
+type Props = {
+  id: string;
+  projectName: string;
+};
+
+export function ProjectNav({ id, projectName }: Props) {
+  const pathname = usePathname();
+
+  const navItems: NavItem[] = [
+    { href: `/dashboard/canvas/${id}`, label: "Canvas", icon: PenLine },
+    { href: `/dashboard/canvas/${id}/overview`, label: "Overview", icon: Info },
+    { href: `/dashboard/canvas/${id}/schema`, label: "Schema Visualizer", icon: Database },
+  ];
+
+  return (
+    <aside className="flex w-52 flex-shrink-0 flex-col overflow-y-auto rounded-xl border border-border bg-card">
+      {/* Project header */}
+      <div className="flex items-center gap-2 border-border border-b px-3 py-3">
+        <div className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded bg-foreground/8">
+          <LayoutDashboard className="size-3 text-foreground/60" />
+        </div>
+        <p className="truncate font-medium text-foreground text-xs">{projectName}</p>
+      </div>
+
+      {/* Nav items */}
+      <nav className="flex flex-col gap-0.5 p-2">
+        {navItems.map(({ href, label, icon: Icon }) => {
+          const active = pathname === href;
+          return (
+            <Link
+              key={href}
+              href={href}
+              className={cn(
+                "flex items-center gap-2.5 rounded-md px-2.5 py-2 text-left transition-colors",
+                active
+                  ? "bg-foreground/8 text-foreground"
+                  : "text-muted-foreground hover:bg-foreground/[0.04] hover:text-foreground",
+              )}
+            >
+              <Icon
+                className={cn(
+                  "size-3.5 flex-shrink-0 transition-colors",
+                  active ? "text-foreground/80" : "text-muted-foreground/60",
+                )}
+              />
+              <span className="text-xs">{label}</span>
+            </Link>
+          );
+        })}
+      </nav>
+    </aside>
+  );
+}
