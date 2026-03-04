@@ -7,10 +7,11 @@ import { AnimatePresence, motion } from "framer-motion";
 import type { LucideIcon } from "lucide-react";
 import {
   Building2,
-  ChevronRight,
+  ChevronDown,
   Code2,
   Database,
   GitBranch,
+  Info,
   LayoutDashboard,
   Network,
   Settings2,
@@ -47,13 +48,15 @@ type ProjectMeta = {
   is_new_app: boolean | null;
 };
 
-// ─── Collapsible section ──────────────────────────────────────────────────────
+// ─── Collapsible section (Supabase-style header) ──────────────────────────────
 
 function SidebarSection({
+  icon: Icon,
   title,
   children,
   defaultOpen = true,
 }: {
+  icon: LucideIcon;
   title: string;
   children: React.ReactNode;
   defaultOpen?: boolean;
@@ -65,15 +68,18 @@ function SidebarSection({
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="flex w-full items-center gap-1.5 px-3 py-2.5 text-left transition-colors hover:bg-foreground/[0.03]"
+        className="flex w-full items-center gap-2 px-3 py-2.5 text-left transition-colors hover:bg-foreground/[0.04]"
       >
-        <ChevronRight
+        <Icon className="size-3.5 flex-shrink-0 text-muted-foreground/50" />
+        <span className="flex-1 font-semibold text-[10px] text-muted-foreground/70 uppercase tracking-widest">
+          {title}
+        </span>
+        <ChevronDown
           className={cn(
-            "size-3 flex-shrink-0 text-muted-foreground/60 transition-transform duration-150",
-            open && "rotate-90",
+            "size-3 flex-shrink-0 text-muted-foreground/40 transition-transform duration-150",
+            !open && "-rotate-90",
           )}
         />
-        <span className="font-medium text-[10px] text-muted-foreground uppercase tracking-widest">{title}</span>
       </button>
 
       <AnimatePresence initial={false}>
@@ -85,7 +91,7 @@ function SidebarSection({
             transition={{ duration: 0.18, ease: [0.25, 0.46, 0.45, 0.94] }}
             className="overflow-hidden"
           >
-            <div className="px-3 pb-4">{children}</div>
+            <div className="pb-2">{children}</div>
           </motion.div>
         )}
       </AnimatePresence>
@@ -93,13 +99,16 @@ function SidebarSection({
   );
 }
 
-// ─── Row helper ───────────────────────────────────────────────────────────────
+// ─── Inline meta row — label | value (Supabase table style) ──────────────────
 
-function MetaRow({ label, children }: { label: string; children: React.ReactNode }) {
+function MetaRow({ label, icon: Icon, value }: { label: string; icon?: LucideIcon; value: React.ReactNode }) {
   return (
-    <div className="flex flex-col gap-1">
-      <span className="text-[10px] text-muted-foreground/60 uppercase tracking-widest">{label}</span>
-      <div className="flex items-center gap-1.5">{children}</div>
+    <div className="flex items-center justify-between gap-3 px-3 py-1.5">
+      <span className="flex-shrink-0 text-[11px] text-muted-foreground/60">{label}</span>
+      <div className="flex min-w-0 items-center gap-1.5 text-right">
+        {Icon && <Icon className="size-3 flex-shrink-0 text-foreground/40" />}
+        <span className="truncate text-[11px] text-foreground">{value}</span>
+      </div>
     </div>
   );
 }
@@ -110,60 +119,42 @@ export function ProjectSidebar({ project, meta }: { project: Project; meta: Proj
   const appType = meta.app_type ? (APP_TYPE_MAP[meta.app_type] ?? null) : null;
 
   return (
-    <aside className="flex w-64 flex-shrink-0 flex-col overflow-y-auto overflow-x-hidden rounded-xl border border-border bg-card/50 backdrop-blur-sm">
-      {/* Header */}
-      <div className="flex items-center border-border border-b px-3 py-3">
+    <aside className="flex w-56 flex-shrink-0 flex-col overflow-y-auto overflow-x-hidden rounded-xl border border-border bg-card">
+      {/* Project name header */}
+      <div className="flex items-center gap-2 border-border border-b px-3 py-3">
+        <div className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded bg-foreground/8">
+          <LayoutDashboard className="size-3 text-foreground/60" />
+        </div>
         <p className="truncate font-medium text-foreground text-xs">{project.name}</p>
       </div>
 
-      {/* Sections */}
-      <div className="flex flex-col divide-y divide-border/40">
-        {/* ── Project Overview ───────────────────────────────────────────────── */}
-        <SidebarSection title="Project Overview">
-          <div className="flex flex-col gap-3 pt-1">
-            {appType &&
-              (() => {
-                const { label, Icon } = appType;
-                return (
-                  <MetaRow label="Type">
-                    <Icon className="size-3.5 text-foreground/50" />
-                    <span className="text-foreground text-xs">{label}</span>
-                  </MetaRow>
-                );
-              })()}
+      {/* Nav sections */}
+      <div className="flex flex-col divide-y divide-border/50 py-1">
+        {/* ── Project Overview ─────────────────────────────────────────────── */}
+        <SidebarSection icon={Info} title="Overview">
+          {appType &&
+            (() => {
+              const { label, Icon } = appType;
+              return <MetaRow label="Type" icon={Icon} value={label} />;
+            })()}
 
-            {meta.is_new_app !== null && (
-              <MetaRow label="Origin">
-                {meta.is_new_app ? (
-                  <>
-                    <Sparkles className="size-3.5 text-foreground/50" />
-                    <span className="text-foreground text-xs">Brand new app</span>
-                  </>
-                ) : (
-                  <>
-                    <Building2 className="size-3.5 text-foreground/50" />
-                    <span className="text-foreground text-xs">Existing app</span>
-                  </>
-                )}
-              </MetaRow>
-            )}
+          {meta.is_new_app !== null && (
+            <MetaRow
+              label="Origin"
+              icon={meta.is_new_app ? Sparkles : Building2}
+              value={meta.is_new_app ? "Brand new" : "Existing app"}
+            />
+          )}
 
-            {project.created_at && (
-              <MetaRow label="Created">
-                <span className="text-foreground text-xs">
-                  {formatDistanceToNow(new Date(project.created_at), { addSuffix: true })}
-                </span>
-              </MetaRow>
-            )}
-          </div>
+          {project.created_at && (
+            <MetaRow label="Created" value={formatDistanceToNow(new Date(project.created_at), { addSuffix: true })} />
+          )}
         </SidebarSection>
 
-        {/* ── Schema Visualizer ─────────────────────────────────────────────── */}
-        <SidebarSection title="Schema Visualizer">
-          <div className="flex flex-col items-center gap-2.5 rounded-lg border border-foreground/[0.06] border-dashed p-4 text-center">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-foreground/[0.04]">
-              <Database className="size-4 text-foreground/25" />
-            </div>
+        {/* ── Schema Visualizer ────────────────────────────────────────────── */}
+        <SidebarSection icon={Database} title="Schema Visualizer">
+          <div className="mx-3 mt-1 flex flex-col items-center gap-2 rounded-lg border border-foreground/[0.07] border-dashed p-4 text-center">
+            <Database className="size-5 text-foreground/20" />
             <p className="text-[11px] text-muted-foreground leading-relaxed">
               Connect a schema to visualize your data models
             </p>

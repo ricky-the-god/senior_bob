@@ -31,14 +31,14 @@ export default async function CanvasPage({ params }: Props) {
   }
 
   return (
-    <div className="flex h-full gap-4 overflow-hidden">
-      {/* Canvas area — React Flow goes here */}
+    <div className="flex h-full gap-3 overflow-hidden">
+      {/* LEFT — Contextual project sidebar */}
+      {project && <ProjectSidebar project={{ name: project.name, created_at: project.created_at }} meta={meta} />}
+
+      {/* RIGHT — Canvas area (React Flow goes here) */}
       <div className="flex flex-1 items-center justify-center rounded-xl border border-border border-dashed bg-muted/10">
         <p className="text-muted-foreground text-xs">Canvas editor coming soon</p>
       </div>
-
-      {/* Contextual project sidebar */}
-      {project && <ProjectSidebar project={{ name: project.name, created_at: project.created_at }} meta={meta} />}
     </div>
   );
 }
