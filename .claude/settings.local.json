@@ -24,7 +24,22 @@
       "Bash(npm run lint:*)",
       "Bash(timeout /t 10 /nobreak)",
       "Bash(curl:*)",
-      "Bash(npx playwright:*)"
+      "Bash(npx playwright:*)",
+      "Bash(timeout:*)",
+      "Bash(powershell -Command \"Stop-Process -Id 22564 -Force\")",
+      "Bash(git restore:*)",
+      "Bash(npx biome check:*)",
+      "Bash(cat:*)",
+      "Bash(claude mcp:*)",
+      "Bash(claude auth:*)",
+      "Bash(cd:*)",
+      "Bash(grep:*)",
+      "mcp__context7__resolve-library-id",
+      "mcp__context7__query-docs",
+      "Bash(npx kill-port:*)",
+      "Bash(netstat -ano)",
+      "Bash(xargs -I{} taskkill /PID {} /F)",
+      "Bash(cmd.exe:*)"
     ]
   }
 }

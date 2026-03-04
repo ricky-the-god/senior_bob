@@ -224,7 +224,8 @@ function TemplateThumbnail({ id }: { id: TemplateId }) {
 // ─── Template Card ─────────────────────────────────────────────────────────────
 
 function TemplateCard({ template }: { template: Template }) {
-  const href = template.id === "blank" ? "/dashboard/new" : `/dashboard/new?template=${template.id}`;
+  const href =
+    template.id === "blank" ? "/dashboard/create-project" : `/dashboard/create-project?template=${template.id}`;
 
   return (
     <Link

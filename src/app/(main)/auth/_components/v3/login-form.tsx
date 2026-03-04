@@ -81,6 +81,7 @@ export function LoginForm() {
     }
     const redirectTo = searchParams.get("redirectTo");
     const safePath = redirectTo?.startsWith("/") && !redirectTo.startsWith("//") ? redirectTo : "/dashboard/default";
+    router.refresh();
     router.push(safePath);
   };
 

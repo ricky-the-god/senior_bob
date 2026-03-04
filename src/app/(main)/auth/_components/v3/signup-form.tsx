@@ -3,6 +3,7 @@
 import { useState } from "react";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { motion } from "framer-motion";
@@ -70,6 +71,7 @@ const passwordRequirements = [
 ];
 
 export function SignupForm() {
+  const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -94,7 +96,7 @@ export function SignupForm() {
   const onSubmit = async (data: SignupFormData) => {
     setIsLoading(true);
     const supabase = createClient();
-    const { error } = await supabase.auth.signUp({
+    const { data: authData, error } = await supabase.auth.signUp({
       email: data.email,
       password: data.password,
       options: {
@@ -107,10 +109,16 @@ export function SignupForm() {
       setIsLoading(false);
       return;
     }
-    toast.success("Check your email", {
-      description: "We sent you a confirmation link to activate your account.",
-    });
-    setIsLoading(false);
+    if (authData.session) {
+      // Email confirmation disabled — session created immediately
+      router.refresh();
+      router.push("/dashboard/default");
+    } else {
+      toast.success("Check your email", {
+        description: "We sent you a confirmation link to activate your account.",
+      });
+      setIsLoading(false);
+    }
   };
 
   const handleGoogleAuth = async () => {

@@ -1,7 +1,6 @@
 ---
 name: system-map
 description: Converts a technical description into a React Flow JSON structure.
-argument-hint: [description of the architecture]
 ---
 When invoked, follow these steps:
 1. Analyze the system components (databases, services, proxies).

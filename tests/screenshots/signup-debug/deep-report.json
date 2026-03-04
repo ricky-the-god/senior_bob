@@ -1,0 +1,21 @@
+{
+  "pageErrors": [],
+  "allConsoleLogs": [
+    "[error] Failed to load resource: the server responded with a status of 500 ()"
+  ],
+  "allNetworkRequests": [
+    {
+      "url": "https://oyelyrrbagktvalqwmnx.supabase.co/auth/v1/signup?redirect_to=http%3A%2F%2Flocalhost%3A3000%2Fauth%2Fcallback",
+      "method": "POST",
+      "status": 500,
+      "body": "{\"code\":\"unexpected_failure\",\"message\":\"Database error saving new user\"}"
+    },
+    {
+      "url": "http://localhost:3000/__nextjs_font/geist-latin.woff2",
+      "method": "GET",
+      "status": 200,
+      "body": "wOF2\u0000\u0001\u0000\u0000\u0000\u0000n�\u0000\u0013\u0000\u0000\u0000\u0000�\u0000\u0000nN\u0000\u0001\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u001a�'\u001b��`\u001c�J?HVAR�<?MVAR<\u0006`?STAT�8\u0000�\u0004/~\u0011\b\n�l�X\u000b�<\u00000��\f\u00016\u0002$\u0003�t\u0004 \u0005�\"\u0007�\u0019\u001b��%lc`y�m\u0000�W\n���\u0015l�\u0016�����\\�}\u0016�\fNjp����t���k\u0003\u0014���@O\u0012�F�6eT��&$�\u0015Hdu���BH���z�\u000eOa+21m�p��Mt������\bSD�0\u001f�;�x�u�k�!;O:\u000b�h�����\u0003�m\u001b\u001c$AZ��OyWD��k�C��=��\u0000=\"��\u0011��\u001e��\u001a�z8T\n��G�#_�\fp'G$$�I�SE\u001f��"
+    }
+  ],
+  "finalUrl": "http://localhost:3000/auth/v3/signup"
+}
