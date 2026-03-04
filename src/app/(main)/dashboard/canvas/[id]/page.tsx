@@ -1,5 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 
+import { ProjectSidebar } from "./_components/project-sidebar";
+
 type ProjectMeta = {
   app_type: string | null;
   is_new_app: boolean | null;
@@ -13,7 +15,11 @@ export default async function CanvasPage({ params }: Props) {
   const { id } = await params;
   const supabase = await createClient();
 
-  const { data: project } = await supabase.from("projects").select("name, description").eq("id", id).single();
+  const { data: project } = await supabase
+    .from("projects")
+    .select("name, description, created_at")
+    .eq("id", id)
+    .single();
 
   let meta: ProjectMeta = { app_type: null, is_new_app: null };
   try {
@@ -25,10 +31,14 @@ export default async function CanvasPage({ params }: Props) {
   }
 
   return (
-    <div className="flex h-full flex-col items-center justify-center gap-4">
-      <p className="font-medium text-foreground text-sm">{project?.name ?? `Canvas ${id}`}</p>
-      {meta.app_type && <p className="text-muted-foreground text-xs capitalize">{meta.app_type.replace("-", " ")}</p>}
-      <p className="text-muted-foreground text-xs">Canvas editor coming soon</p>
+    <div className="flex h-full gap-4 overflow-hidden">
+      {/* Canvas area — React Flow goes here */}
+      <div className="flex flex-1 items-center justify-center rounded-xl border border-border border-dashed bg-muted/10">
+        <p className="text-muted-foreground text-xs">Canvas editor coming soon</p>
+      </div>
+
+      {/* Contextual project sidebar */}
+      {project && <ProjectSidebar project={{ name: project.name, created_at: project.created_at }} meta={meta} />}
     </div>
   );
 }
