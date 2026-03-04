@@ -2,7 +2,6 @@ import type { ReactNode } from "react";
 
 import { cookies } from "next/headers";
 
-import { NewCanvasButton } from "@/app/(main)/dashboard/_components/header/new-canvas-button";
 import { AppSidebar } from "@/app/(main)/dashboard/_components/sidebar/app-sidebar";
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { users } from "@/data/users";
@@ -58,7 +57,6 @@ export default async function Layout({ children }: Readonly<{ children: ReactNod
             <div className="flex w-full items-center justify-between px-4 lg:px-6">
               <div className="flex items-center gap-1 lg:gap-2">
                 <SidebarTrigger className="-ml-1" />
-                <NewCanvasButton />
               </div>
               <div className="flex items-center gap-2">
                 <LayoutControls />
