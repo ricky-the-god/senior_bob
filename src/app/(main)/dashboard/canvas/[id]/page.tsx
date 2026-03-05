@@ -1,7 +1,10 @@
-export default function CanvasPage() {
-  return (
-    <div className="flex flex-1 items-center justify-center rounded-xl border border-border border-dashed bg-muted/10">
-      <p className="text-muted-foreground text-xs">Canvas editor coming soon</p>
-    </div>
-  );
+import { redirect } from "next/navigation";
+
+type Props = {
+  params: Promise<{ id: string }>;
+};
+
+export default async function CanvasPage({ params }: Props) {
+  const { id } = await params;
+  redirect(`/dashboard/canvas/${id}/schema`);
 }
