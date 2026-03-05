@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-import { Database, Info, LayoutDashboard } from "lucide-react";
+import { Database, Info, LayoutDashboard, Network } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 
@@ -24,6 +24,7 @@ export function ProjectNav({ id, projectName }: Props) {
   const navItems: NavItem[] = [
     { href: `/dashboard/canvas/${id}/overview`, label: "Overview", icon: Info },
     { href: `/dashboard/canvas/${id}/schema`, label: "Schema Visualizer", icon: Database },
+    { href: `/dashboard/canvas/${id}/system-design`, label: "System Design", icon: Network },
   ];
 
   return (
