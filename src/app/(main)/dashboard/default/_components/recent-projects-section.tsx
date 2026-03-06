@@ -74,13 +74,19 @@ function RecentProjectCard({ project }: { project: Project }) {
   );
 }
 
-export function RecentProjectsSection({ projects }: { projects: Project[] }) {
+export function RecentProjectsSection({
+  projects,
+  title = "Recent projects",
+}: {
+  projects: Project[];
+  title?: string;
+}) {
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
 
   return (
     <section>
       <div className="mb-5 flex items-center justify-between">
-        <h2 className="font-medium text-muted-foreground text-xs uppercase tracking-wide">Recent projects</h2>
+        <h2 className="font-medium text-muted-foreground text-xs uppercase tracking-wide">{title}</h2>
         <div className="flex items-center overflow-hidden rounded-md border border-border">
           <button
             type="button"

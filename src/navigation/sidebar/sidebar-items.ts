@@ -1,4 +1,4 @@
-import { BookOpen, FileText, Folder, type LucideIcon, Search, Trash2, Users } from "lucide-react";
+import { BookOpen, Folder, Home, type LucideIcon, Search, Trash2, Users } from "lucide-react";
 
 export interface NavSubItem {
   title: string;
@@ -43,9 +43,9 @@ export const sidebarItems: NavGroup[] = [
     label: "Workspace",
     items: [
       {
-        title: "Drafts",
-        url: "/dashboard/drafts",
-        icon: FileText,
+        title: "Home",
+        url: "/dashboard/default",
+        icon: Home,
       },
       {
         title: "All Projects",
