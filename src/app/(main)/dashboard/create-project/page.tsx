@@ -277,7 +277,7 @@ function OnboardingWizard() {
         app_type: data.app_type ?? undefined,
         is_new_app: data.is_new_app ?? undefined,
       });
-      router.push(`/dashboard/canvas/${id}/schema`);
+      router.push(`/dashboard/project/${id}/schema`);
     } catch (err) {
       toast.error("Failed to create project", {
         description: err instanceof Error ? err.message : "Unknown error",

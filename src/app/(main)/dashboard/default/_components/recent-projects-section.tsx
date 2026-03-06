@@ -17,7 +17,7 @@ type Project = {
 
 function RecentProjectCard({ project }: { project: Project }) {
   return (
-    <Link href={`/dashboard/canvas/${project.id}`} className="group flex flex-col">
+    <Link href={`/dashboard/project/${project.id}/overview`} className="group flex flex-col">
       <div
         className={cn(
           "w-full overflow-hidden rounded-lg border transition-all duration-150",
@@ -124,7 +124,7 @@ export function RecentProjectsSection({ projects }: { projects: Project[] }) {
           {projects.map((p) => (
             <Link
               key={p.id}
-              href={`/dashboard/canvas/${p.id}`}
+              href={`/dashboard/project/${p.id}/overview`}
               className="flex items-center justify-between px-4 py-3 transition-colors hover:bg-muted/40"
             >
               <div className="min-w-0">

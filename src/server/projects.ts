@@ -4,8 +4,9 @@ import { redirect } from "next/navigation";
 
 import { z } from "zod";
 
-import { APP_TYPE_IDS } from "@/lib/project-types";
-import { createClient } from "@/lib/supabase/server";
+import { APP_TYPE_IDS, type ProjectMeta } from "@/lib/project-types";
+
+import { getAuthenticatedUser } from "./auth";
 
 // ─── Shared schema ────────────────────────────────────────────────────────────
 
@@ -19,17 +20,6 @@ const WizardProjectSchema = z.object({
   is_new_app: z.boolean().optional(),
 });
 
-// ─── Private helper ───────────────────────────────────────────────────────────
-
-async function getAuthenticatedUser() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) throw new Error("Not authenticated");
-  return { supabase, user };
-}
-
 // ─── Actions ──────────────────────────────────────────────────────────────────
 
 export async function createProject(formData: FormData) {
@@ -39,7 +29,7 @@ export async function createProject(formData: FormData) {
   const { data, error } = await supabase.from("projects").insert({ name, owner_id: user.id }).select("id").single();
 
   if (error) throw new Error(error.message);
-  redirect(`/dashboard/canvas/${data.id}`);
+  redirect(`/dashboard/project/${data.id}/overview`);
 }
 
 export async function createProjectFromWizard(input: z.infer<typeof WizardProjectSchema>): Promise<{ id: string }> {
@@ -55,4 +45,40 @@ export async function createProjectFromWizard(input: z.infer<typeof WizardProjec
 
   if (error) throw new Error(error.message);
   return { id: data.id };
+}
+
+export async function updateProjectName(id: string, name: string) {
+  const parsed = projectNameSchema.parse(name);
+  const { supabase, user } = await getAuthenticatedUser();
+  const { error } = await supabase.from("projects").update({ name: parsed }).eq("id", id).eq("owner_id", user.id);
+  if (error) throw new Error(error.message);
+}
+
+export async function updateProjectMeta(id: string, patch: Partial<ProjectMeta>) {
+  const { supabase, user } = await getAuthenticatedUser();
+
+  // Fetch current description to merge patch on top
+  const { data } = await supabase.from("projects").select("description").eq("id", id).eq("owner_id", user.id).single();
+
+  let current: Partial<ProjectMeta> = {};
+  try {
+    if (data?.description) current = JSON.parse(data.description) as Partial<ProjectMeta>;
+  } catch {
+    // malformed — start fresh
+  }
+
+  const merged = { ...current, ...patch };
+  const { error } = await supabase
+    .from("projects")
+    .update({ description: JSON.stringify(merged) })
+    .eq("id", id)
+    .eq("owner_id", user.id);
+  if (error) throw new Error(error.message);
+}
+
+export async function deleteProject(id: string) {
+  const { supabase, user } = await getAuthenticatedUser();
+  const { error } = await supabase.from("projects").delete().eq("id", id).eq("owner_id", user.id);
+  if (error) throw new Error(error.message);
+  redirect("/dashboard/default");
 }

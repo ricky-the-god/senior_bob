@@ -6,7 +6,7 @@
 - **Priority:** Zero technical debt, extreme maintainability, and high-fidelity UI.
 
 ## 🛠 TECH STACK
-- **Frontend:** Next.js 15 (App Router), React Flow (Schema Visualizer engine at `/dashboard/canvas/[id]/schema`), Tailwind CSS v4, shadcn/ui.
+- **Frontend:** Next.js 15 (App Router), React Flow (Schema Visualizer engine at `/dashboard/project/[id]/overview`), Tailwind CSS v4, shadcn/ui.
 - **Backend:** Supabase (Auth, RLS, PostgreSQL).
 - **AI Integration:** Vercel AI SDK (Anthropic Provider).
 

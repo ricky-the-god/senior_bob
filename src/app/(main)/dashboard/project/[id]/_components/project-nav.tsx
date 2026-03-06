@@ -22,19 +22,19 @@ export function ProjectNav({ id, projectName }: Props) {
   const pathname = usePathname();
 
   const navItems: NavItem[] = [
-    { href: `/dashboard/canvas/${id}/overview`, label: "Overview", icon: Info },
-    { href: `/dashboard/canvas/${id}/schema`, label: "Schema Visualizer", icon: Database },
-    { href: `/dashboard/canvas/${id}/system-design`, label: "System Design", icon: Network },
+    { href: `/dashboard/project/${id}/overview`, label: "Overview", icon: Info },
+    { href: `/dashboard/project/${id}/schema`, label: "Schema Visualizer", icon: Database },
+    { href: `/dashboard/project/${id}/system-design`, label: "System Design", icon: Network },
   ];
 
   return (
-    <aside className="flex w-52 flex-shrink-0 flex-col overflow-y-auto border-border border-r bg-card">
+    <aside className="mr-6 flex w-52 flex-shrink-0 flex-col overflow-y-auto border-border border-r bg-card">
       {/* Project header */}
       <div className="flex items-center gap-2 border-border border-b px-3 py-3">
         <div className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded bg-foreground/8">
           <LayoutDashboard className="size-3 text-foreground/60" />
         </div>
-        <p className="truncate font-medium text-foreground text-xs">{projectName}</p>
+        <p className="truncate font-medium text-foreground text-sm">{projectName}</p>
       </div>
 
       {/* Nav items */}
@@ -58,7 +58,7 @@ export function ProjectNav({ id, projectName }: Props) {
                   active ? "text-foreground/80" : "text-muted-foreground/60",
                 )}
               />
-              <span className="text-xs">{label}</span>
+              <span className="text-sm">{label}</span>
             </Link>
           );
         })}

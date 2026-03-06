@@ -8,7 +8,7 @@ export const getProject = cache(async (id: string) => {
   const supabase = await createClient();
   const { data } = await supabase
     .from("projects")
-    .select("name, description, created_at, updated_at")
+    .select("id, name, description, created_at, updated_at, owner_id")
     .eq("id", id)
     .single();
   return data;

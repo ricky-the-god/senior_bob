@@ -16,9 +16,27 @@ export const APP_TYPE_IDS = [
 
 export type AppTypeId = (typeof APP_TYPE_IDS)[number];
 
+export type Sprint = {
+  id: string;
+  name: string;
+  completed: number;
+  total: number;
+};
+
+export type Release = {
+  id: string;
+  version: string;
+  date: string;
+  status: "planned" | "in-progress" | "released";
+};
+
 export type ProjectMeta = {
   app_type: AppTypeId | null;
   is_new_app: boolean | null;
+  bio: string | null;
+  tech_stack: string[] | null;
+  sprints: Sprint[] | null;
+  releases: Release[] | null;
 };
 
 export const APP_TYPES: { id: AppTypeId; label: string; Icon: LucideIcon }[] = [
