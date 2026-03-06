@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 
 import { z } from "zod";
 
+import { APP_TYPE_IDS } from "@/lib/project-types";
 import { createClient } from "@/lib/supabase/server";
 
 // ─── Shared schema ────────────────────────────────────────────────────────────
@@ -14,7 +15,7 @@ const CreateProjectSchema = z.object({ name: projectNameSchema });
 
 const WizardProjectSchema = z.object({
   name: projectNameSchema,
-  app_type: z.string().optional(),
+  app_type: z.enum(APP_TYPE_IDS).optional(),
   is_new_app: z.boolean().optional(),
 });
 

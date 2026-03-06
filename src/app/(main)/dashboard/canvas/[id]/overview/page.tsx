@@ -1,37 +1,8 @@
 import { formatDistanceToNow } from "date-fns";
-import type { LucideIcon } from "lucide-react";
-import {
-  Building2,
-  Code2,
-  GitBranch,
-  LayoutDashboard,
-  Network,
-  Settings2,
-  ShoppingCart,
-  Smartphone,
-  Sparkles,
-  Zap,
-} from "lucide-react";
+import { Building2, Sparkles } from "lucide-react";
 
-import { createClient } from "@/lib/supabase/server";
-
-// ─── App type registry ────────────────────────────────────────────────────────
-
-const APP_TYPE_MAP: Record<string, { label: string; Icon: LucideIcon }> = {
-  saas: { label: "SaaS Platform", Icon: LayoutDashboard },
-  mobile: { label: "Mobile App", Icon: Smartphone },
-  microservices: { label: "Microservices", Icon: Network },
-  ecommerce: { label: "E-commerce", Icon: ShoppingCart },
-  api: { label: "API Platform", Icon: Code2 },
-  internal: { label: "Internal Tool", Icon: Settings2 },
-  "data-pipeline": { label: "Data Pipeline", Icon: GitBranch },
-  realtime: { label: "Real-time App", Icon: Zap },
-};
-
-type ProjectMeta = {
-  app_type: string | null;
-  is_new_app: boolean | null;
-};
+import { APP_TYPE_MAP, type ProjectMeta } from "@/lib/project-types";
+import { getProject } from "@/lib/queries/get-project";
 
 type Props = {
   params: Promise<{ id: string }>;
@@ -52,13 +23,7 @@ function MetaRow({ label, children }: { label: string; children: React.ReactNode
 
 export default async function OverviewPage({ params }: Props) {
   const { id } = await params;
-  const supabase = await createClient();
-
-  const { data: project } = await supabase
-    .from("projects")
-    .select("name, description, created_at, updated_at")
-    .eq("id", id)
-    .single();
+  const project = await getProject(id);
 
   let meta: ProjectMeta = { app_type: null, is_new_app: null };
   try {

@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 
-import { createClient } from "@/lib/supabase/server";
+import { getProject } from "@/lib/queries/get-project";
 
 import { ProjectNav } from "./_components/project-nav";
 
@@ -11,12 +11,10 @@ type Props = {
 
 export default async function CanvasLayout({ children, params }: Props) {
   const { id } = await params;
-  const supabase = await createClient();
-
-  const { data: project } = await supabase.from("projects").select("name").eq("id", id).single();
+  const project = await getProject(id);
 
   return (
-    <div className="flex h-full gap-3 overflow-hidden">
+    <div className="-ml-4 md:-ml-6 -mt-4 md:-mt-6 -mb-4 md:-mb-6 flex h-[calc(100%+2rem)] overflow-hidden md:h-[calc(100%+3rem)]">
       <ProjectNav id={id} projectName={project?.name ?? "Project"} />
       {children}
     </div>

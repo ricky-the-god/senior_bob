@@ -7,23 +7,12 @@ import { useRouter } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { AnimatePresence, motion } from "framer-motion";
 import type { LucideIcon } from "lucide-react";
-import {
-  ArrowLeft,
-  Building2,
-  Code2,
-  GitBranch,
-  LayoutDashboard,
-  Network,
-  Settings2,
-  ShoppingCart,
-  Smartphone,
-  Sparkles,
-  Zap,
-} from "lucide-react";
+import { ArrowLeft, Building2, Sparkles } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 
+import { APP_TYPES, type AppTypeId, DEFAULT_NAMES } from "@/lib/project-types";
 import { cn } from "@/lib/utils";
 import { createProjectFromWizard } from "@/server/projects";
 
@@ -31,7 +20,7 @@ import { createProjectFromWizard } from "@/server/projects";
 
 type WizardData = {
   is_new_app: boolean | null;
-  app_type: string | null;
+  app_type: AppTypeId | null;
   name: string;
 };
 
@@ -46,28 +35,6 @@ const WIZARD_OPTION_CLASSES =
   "rounded-xl border border-foreground/10 bg-card/50 transition-all duration-150 " +
   "hover:border-blue-500/50 hover:bg-blue-500/5 hover:shadow-blue-500/10 hover:shadow-md " +
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
-
-const APP_TYPES = [
-  { id: "saas", label: "SaaS Platform", Icon: LayoutDashboard },
-  { id: "mobile", label: "Mobile App", Icon: Smartphone },
-  { id: "microservices", label: "Microservices", Icon: Network },
-  { id: "ecommerce", label: "E-commerce", Icon: ShoppingCart },
-  { id: "api", label: "API Platform", Icon: Code2 },
-  { id: "internal", label: "Internal Tool", Icon: Settings2 },
-  { id: "data-pipeline", label: "Data Pipeline", Icon: GitBranch },
-  { id: "realtime", label: "Real-time App", Icon: Zap },
-] as const;
-
-const DEFAULT_NAMES: Record<string, string> = {
-  saas: "My SaaS Platform",
-  mobile: "My Mobile App",
-  microservices: "My Microservices",
-  ecommerce: "My E-commerce Store",
-  api: "My API Platform",
-  internal: "My Internal Tool",
-  "data-pipeline": "My Data Pipeline",
-  realtime: "My Real-time App",
-};
 
 // ─── Form Schema ──────────────────────────────────────────────────────────────
 
@@ -168,7 +135,7 @@ function StepOrigin({ onSelect }: { onSelect: (isNew: boolean) => void }) {
 
 // ─── Step 2 — App Type ────────────────────────────────────────────────────────
 
-function StepAppType({ onSelect }: { onSelect: (type: string) => void }) {
+function StepAppType({ onSelect }: { onSelect: (type: AppTypeId) => void }) {
   return (
     <div className="flex flex-col gap-6">
       <div className="text-center">
@@ -297,7 +264,7 @@ function OnboardingWizard() {
     goForward(2);
   };
 
-  const handleTypeSelect = (type: string) => {
+  const handleTypeSelect = (type: AppTypeId) => {
     setData((d) => ({ ...d, app_type: type, name: DEFAULT_NAMES[type] ?? FALLBACK_PROJECT_NAME }));
     goForward(3);
   };

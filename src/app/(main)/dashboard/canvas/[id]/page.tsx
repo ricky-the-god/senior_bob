@@ -6,5 +6,5 @@ type Props = {
 
 export default async function CanvasPage({ params }: Props) {
   const { id } = await params;
-  redirect(`/dashboard/canvas/${id}/schema`);
+  redirect(`/dashboard/canvas/${id}/overview`);
 }
