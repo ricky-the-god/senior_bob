@@ -4,45 +4,45 @@ import { useState } from "react";
 
 import { useRouter } from "next/navigation";
 
-import { zodResolver } from "@hookform/resolvers/zod";
 import { AnimatePresence, motion } from "framer-motion";
-import type { LucideIcon } from "lucide-react";
-import { ArrowLeft, Building2, Sparkles } from "lucide-react";
-import { useForm } from "react-hook-form";
+import { ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
-import { z } from "zod";
 
-import { APP_TYPES, type AppTypeId, DEFAULT_NAMES } from "@/lib/project-types";
-import { cn } from "@/lib/utils";
+import type { DiagramPayload } from "@/lib/diagram-types";
+import type { AppTypeId, BackendId, InfraId, UserScaleId, WizardRecommendations } from "@/lib/project-types";
+import { DEFAULT_NAMES } from "@/lib/project-types";
+import { saveDiagram } from "@/server/diagrams";
 import { createProjectFromWizard } from "@/server/projects";
+
+import { StepAppType } from "./_components/step-app-type";
+import { StepBackend } from "./_components/step-backend";
+import { StepDescription } from "./_components/step-description";
+import { StepInfra } from "./_components/step-infra";
+import { StepName } from "./_components/step-name";
+import { StepOrigin } from "./_components/step-origin";
+import { StepTechStack } from "./_components/step-tech-stack";
+import { StepUserScale } from "./_components/step-user-scale";
+import type { SubmitPhase } from "./_components/wizard-types";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
-type WizardData = {
-  is_new_app: boolean | null;
+type WizardState = {
+  description: string;
   app_type: AppTypeId | null;
+  is_new_app: boolean | null;
+  tech_stack: string[];
+  user_scale: UserScaleId | null;
+  infra: InfraId | null;
+  backend: BackendId | null;
   name: string;
+  recommendations: WizardRecommendations | null;
+  recommendationLoading: boolean;
 };
 
-type Step = 1 | 2 | 3;
+type Step = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8;
 
-// ─── Constants ────────────────────────────────────────────────────────────────
-
+const TOTAL_STEPS = 8;
 const FALLBACK_PROJECT_NAME = "My Project";
-
-// Shared interactive styles for every selectable option card in the wizard
-const WIZARD_OPTION_CLASSES =
-  "rounded-xl border border-foreground/10 bg-card/50 transition-all duration-150 " +
-  "hover:border-blue-500/50 hover:bg-blue-500/5 hover:shadow-blue-500/10 hover:shadow-md " +
-  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
-
-// ─── Form Schema ──────────────────────────────────────────────────────────────
-
-const nameSchema = z.object({
-  name: z.string().min(1, "Project name is required").max(100, "Name must be under 100 characters").trim(),
-});
-
-type NameFormData = z.infer<typeof nameSchema>;
 
 // ─── Slide Variants ───────────────────────────────────────────────────────────
 
@@ -64,14 +64,14 @@ const slideVariants = {
 
 function WizardProgress({ step }: { step: Step }) {
   return (
-    <div className="flex items-center gap-1.5">
-      {([1, 2, 3] as const).map((s) => (
+    <div className="flex items-center gap-1">
+      {Array.from({ length: TOTAL_STEPS }, (_, i) => i + 1).map((s) => (
         <motion.div
           key={s}
-          className="h-1.5 rounded-full bg-foreground"
+          className="h-1 rounded-full bg-foreground"
           animate={{
-            width: s === step ? 24 : 12,
-            opacity: s < step ? 0.5 : s === step ? 1 : 0.2,
+            width: s === step ? 20 : 8,
+            opacity: s < step ? 0.5 : s === step ? 1 : 0.15,
           }}
           transition={{ duration: 0.3, ease: [0.25, 0.46, 0.45, 0.94] as const }}
         />
@@ -80,164 +80,22 @@ function WizardProgress({ step }: { step: Step }) {
   );
 }
 
-// ─── Step 1 — Origin ──────────────────────────────────────────────────────────
+// ─── Prompt builder ───────────────────────────────────────────────────────────
 
-type OriginOptionProps = {
-  icon: LucideIcon;
-  title: string;
-  subtitle: string;
-  onClick: () => void;
-};
-
-function OriginOption({ icon: Icon, title, subtitle, onClick }: OriginOptionProps) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={cn("flex items-center gap-4 p-4 text-left", WIZARD_OPTION_CLASSES)}
-    >
-      <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-foreground/5">
-        <Icon className="size-5 text-foreground/70" />
-      </div>
-      <div>
-        <p className="font-medium text-foreground text-sm">{title}</p>
-        <p className="mt-0.5 text-muted-foreground text-xs">{subtitle}</p>
-      </div>
-    </button>
-  );
-}
-
-function StepOrigin({ onSelect }: { onSelect: (isNew: boolean) => void }) {
-  return (
-    <div className="flex flex-col gap-6">
-      <div className="text-center">
-        <h2 className="font-semibold text-foreground text-xl tracking-tight">What&apos;s your starting point?</h2>
-        <p className="mt-1.5 text-muted-foreground text-sm">Tell us about your project origin</p>
-      </div>
-
-      <div className="flex flex-col gap-3">
-        <OriginOption
-          icon={Sparkles}
-          title="Brand new app"
-          subtitle="Start from scratch with a clean slate"
-          onClick={() => onSelect(true)}
-        />
-        <OriginOption
-          icon={Building2}
-          title="Existing app"
-          subtitle="Document or redesign an existing system"
-          onClick={() => onSelect(false)}
-        />
-      </div>
-    </div>
-  );
-}
-
-// ─── Step 2 — App Type ────────────────────────────────────────────────────────
-
-function StepAppType({ onSelect }: { onSelect: (type: AppTypeId) => void }) {
-  return (
-    <div className="flex flex-col gap-6">
-      <div className="text-center">
-        <h2 className="font-semibold text-foreground text-xl tracking-tight">What type of application?</h2>
-        <p className="mt-1.5 text-muted-foreground text-sm">Choose the category that best fits your project</p>
-      </div>
-
-      <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
-        {APP_TYPES.map(({ id, label, Icon }) => (
-          <button
-            key={id}
-            type="button"
-            onClick={() => onSelect(id)}
-            className={cn("flex flex-col items-center gap-2 p-3.5", WIZARD_OPTION_CLASSES)}
-          >
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-foreground/5">
-              <Icon className="size-4 text-foreground/70" />
-            </div>
-            <span className="text-center font-medium text-foreground text-xs leading-tight">{label}</span>
-          </button>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-// ─── Step 3 — Name ────────────────────────────────────────────────────────────
-
-function StepName({
-  defaultName,
-  isSubmitting,
-  onSubmit,
-}: {
-  defaultName: string;
-  isSubmitting: boolean;
-  onSubmit: (data: NameFormData) => Promise<void>;
-}) {
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-  } = useForm<NameFormData>({
-    resolver: zodResolver(nameSchema),
-    defaultValues: { name: defaultName },
-  });
-
-  return (
-    <div className="flex flex-col gap-6">
-      <div className="text-center">
-        <h2 className="font-semibold text-foreground text-xl tracking-tight">Name your project</h2>
-        <p className="mt-1.5 text-muted-foreground text-sm">You can always change this later</p>
-      </div>
-
-      <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
-        <div className="flex flex-col gap-1.5">
-          <label htmlFor="project-name" className="font-medium text-foreground text-xs">
-            Project name
-          </label>
-          <input
-            id="project-name"
-            type="text"
-            placeholder="e.g. My Awesome App"
-            {...register("name")}
-            className={cn(
-              "w-full rounded-lg border border-foreground/10 bg-card/50 px-3.5 py-2.5",
-              "text-foreground text-sm placeholder:text-muted-foreground/50",
-              "outline-none transition-all duration-150",
-              "focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/20",
-              errors.name && "border-red-500/50",
-            )}
-          />
-          {errors.name && <p className="text-red-400 text-xs">{errors.name.message}</p>}
-        </div>
-
-        <motion.button
-          type="submit"
-          disabled={isSubmitting}
-          className={cn(
-            "relative w-full rounded-lg px-4 py-3",
-            "bg-foreground text-background",
-            "font-medium text-sm",
-            "transition-all duration-300 hover:opacity-90",
-            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
-            "disabled:pointer-events-none disabled:opacity-50",
-          )}
-          whileHover={{ scale: 1.01 }}
-          whileTap={{ scale: 0.99 }}
-          transition={{ type: "spring", stiffness: 400, damping: 25 }}
-        >
-          {isSubmitting ? (
-            <motion.div
-              className="mx-auto size-5 rounded-full border-2 border-background/20 border-t-background"
-              animate={{ rotate: 360 }}
-              transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-            />
-          ) : (
-            "Create project"
-          )}
-        </motion.button>
-      </form>
-    </div>
-  );
+function buildDiagramPrompt(state: WizardState): string {
+  const lines = [
+    `Generate a complete system design diagram for the following project:`,
+    `Name: ${state.name}`,
+    `Description: ${state.description}`,
+    `App type: ${state.app_type ?? "unspecified"}`,
+    `New app: ${state.is_new_app === null ? "unspecified" : state.is_new_app ? "yes" : "no"}`,
+    `Tech stack: ${state.tech_stack.length > 0 ? state.tech_stack.join(", ") : "unspecified"}`,
+    `Expected scale: ${state.user_scale ?? "unspecified"}`,
+    `Infrastructure: ${state.infra ?? "unspecified"}`,
+    `Backend: ${state.backend ?? "unspecified"}`,
+    `Include all major components: clients, API gateway, services, databases, caches, and external integrations.`,
+  ];
+  return lines.join("\n");
 }
 
 // ─── Wizard Shell ─────────────────────────────────────────────────────────────
@@ -246,49 +104,136 @@ function OnboardingWizard() {
   const router = useRouter();
   const [step, setStep] = useState<Step>(1);
   const [direction, setDirection] = useState<1 | -1>(1);
-  const [data, setData] = useState<WizardData>({ is_new_app: null, app_type: null, name: "" });
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [state, setState] = useState<WizardState>({
+    description: "",
+    app_type: null,
+    is_new_app: null,
+    tech_stack: [],
+    user_scale: null,
+    infra: null,
+    backend: null,
+    name: "",
+    recommendations: null,
+    recommendationLoading: false,
+  });
+  const [submitPhase, setSubmitPhase] = useState<SubmitPhase>("idle");
 
-  const goForward = (next: Step) => {
-    setDirection(1);
+  const goTo = (next: Step, dir: 1 | -1 = 1) => {
+    setDirection(dir);
     setStep(next);
   };
 
   const goBack = () => {
-    setDirection(-1);
-    setStep((s) => (s > 1 ? ((s - 1) as Step) : s));
+    if (step > 1) goTo((step - 1) as Step, -1);
   };
 
-  const handleOriginSelect = (isNew: boolean) => {
-    setData((d) => ({ ...d, is_new_app: isNew }));
-    goForward(2);
+  const fetchRecommendations = async (description: string) => {
+    setState((s) => ({ ...s, recommendationLoading: true }));
+    try {
+      const res = await fetch("/api/wizard/recommend", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ description }),
+      });
+      if (!res.ok) return;
+      const recs = (await res.json()) as WizardRecommendations;
+      setState((s) => ({
+        ...s,
+        recommendations: recs,
+        recommendationLoading: false,
+        // Pre-fill tech stack with recommendations
+        tech_stack: s.tech_stack.length === 0 ? recs.tech_stack : s.tech_stack,
+        // Pre-fill name if not yet set
+        name: s.name === "" ? recs.suggested_name : s.name,
+      }));
+    } catch {
+      setState((s) => ({ ...s, recommendationLoading: false }));
+    }
   };
 
-  const handleTypeSelect = (type: AppTypeId) => {
-    setData((d) => ({ ...d, app_type: type, name: DEFAULT_NAMES[type] ?? FALLBACK_PROJECT_NAME }));
-    goForward(3);
+  // Step handlers
+  const handleDescription = (description: string) => {
+    setState((s) => ({ ...s, description }));
+    goTo(2);
+    void fetchRecommendations(description);
   };
 
-  const handleNameSubmit = async (formData: NameFormData) => {
-    setIsSubmitting(true);
+  const handleAppType = (app_type: AppTypeId) => {
+    setState((s) => ({
+      ...s,
+      app_type,
+      name: s.name === "" ? (DEFAULT_NAMES[app_type] ?? FALLBACK_PROJECT_NAME) : s.name,
+    }));
+    goTo(3);
+  };
+
+  const handleOrigin = (is_new_app: boolean) => {
+    setState((s) => ({ ...s, is_new_app }));
+    goTo(4);
+  };
+
+  const handleTechStack = () => goTo(5);
+
+  const handleUserScale = (user_scale: UserScaleId) => {
+    setState((s) => ({ ...s, user_scale }));
+    goTo(6);
+  };
+
+  const handleInfra = (infra: InfraId) => {
+    setState((s) => ({ ...s, infra }));
+    goTo(7);
+  };
+
+  const handleBackend = (backend: BackendId) => {
+    setState((s) => ({ ...s, backend }));
+    goTo(8);
+  };
+
+  const handleFinalSubmit = async (name: string) => {
+    setSubmitPhase("creating");
     try {
       const { id } = await createProjectFromWizard({
-        name: formData.name,
-        app_type: data.app_type ?? undefined,
-        is_new_app: data.is_new_app ?? undefined,
+        name,
+        app_type: state.app_type ?? undefined,
+        is_new_app: state.is_new_app ?? undefined,
+        user_scale: state.user_scale ?? undefined,
+        infra: state.infra ?? undefined,
+        backend: state.backend ?? undefined,
+        tech_stack: state.tech_stack.length > 0 ? state.tech_stack : undefined,
+        wizard_description: state.description || undefined,
       });
-      router.push(`/dashboard/project/${id}/schema`);
+
+      setSubmitPhase("generating");
+      try {
+        const prompt = buildDiagramPrompt({ ...state, name });
+        const res = await fetch("/api/diagram-ai/generate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ prompt }),
+        });
+        if (res.ok) {
+          const diagram = (await res.json()) as DiagramPayload;
+          await saveDiagram(id, "system-design", diagram);
+        }
+      } catch {
+        // Diagram generation is best-effort — don't block redirect
+      }
+
+      setSubmitPhase("done");
+      router.push(`/dashboard/project/${id}/system-design`);
     } catch (err) {
       toast.error("Failed to create project", {
         description: err instanceof Error ? err.message : "Unknown error",
       });
-      setIsSubmitting(false);
+      setSubmitPhase("idle");
     }
   };
 
+  const recs = state.recommendations;
+
   return (
-    <div className="relative w-full max-w-[520px] overflow-hidden rounded-2xl border-[0.5px] border-foreground/10 bg-card/80 p-8 shadow-2xl shadow-black/20 backdrop-blur-xl sm:p-10">
-      {/* Grain texture overlay */}
+    <div className="relative w-full max-w-[560px] overflow-hidden rounded-2xl border-[0.5px] border-foreground/10 bg-card/80 p-8 shadow-2xl shadow-black/20 backdrop-blur-xl sm:p-10">
+      {/* Grain texture */}
       <div
         className="pointer-events-none absolute inset-0 opacity-[0.03] dark:opacity-[0.05]"
         style={{
@@ -296,7 +241,7 @@ function OnboardingWizard() {
         }}
       />
 
-      {/* Header row: back button + progress */}
+      {/* Header: back + progress */}
       <div className="relative z-10 mb-8 flex items-center justify-between">
         <div className="h-7 w-16">
           <AnimatePresence>
@@ -329,13 +274,70 @@ function OnboardingWizard() {
             animate="center"
             exit="exit"
           >
-            {step === 1 && <StepOrigin onSelect={handleOriginSelect} />}
-            {step === 2 && <StepAppType onSelect={handleTypeSelect} />}
+            {step === 1 && <StepDescription onContinue={handleDescription} />}
+
+            {step === 2 && (
+              <StepAppType
+                recommended={recs?.app_type ?? null}
+                recommendedReason={recs?.app_type_reason}
+                recommendationLoading={state.recommendationLoading}
+                onSelect={handleAppType}
+              />
+            )}
+
             {step === 3 && (
+              <StepOrigin
+                recommended={recs?.is_new_app ?? null}
+                recommendedReason={recs?.is_new_app_reason}
+                recommendationLoading={state.recommendationLoading}
+                onSelect={handleOrigin}
+              />
+            )}
+
+            {step === 4 && (
+              <StepTechStack
+                selected={state.tech_stack}
+                recommended={recs?.tech_stack ?? []}
+                recommendedReason={recs?.tech_stack_reason}
+                recommendationLoading={state.recommendationLoading}
+                onChange={(tech_stack) => setState((s) => ({ ...s, tech_stack }))}
+                onContinue={handleTechStack}
+              />
+            )}
+
+            {step === 5 && (
+              <StepUserScale
+                recommended={recs?.user_scale ?? null}
+                recommendedReason={recs?.user_scale_reason}
+                recommendationLoading={state.recommendationLoading}
+                onSelect={handleUserScale}
+              />
+            )}
+
+            {step === 6 && (
+              <StepInfra
+                recommended={recs?.infra ?? null}
+                recommendedReason={recs?.infra_reason}
+                recommendationLoading={state.recommendationLoading}
+                onSelect={handleInfra}
+              />
+            )}
+
+            {step === 7 && (
+              <StepBackend
+                recommended={recs?.backend ?? null}
+                recommendedReason={recs?.backend_reason}
+                recommendationLoading={state.recommendationLoading}
+                onSelect={handleBackend}
+              />
+            )}
+
+            {step === 8 && (
               <StepName
-                defaultName={data.name || FALLBACK_PROJECT_NAME}
-                isSubmitting={isSubmitting}
-                onSubmit={handleNameSubmit}
+                suggestedName={recs?.suggested_name ?? state.name}
+                suggestedNameReason={recs?.suggested_name_reason}
+                submitPhase={submitPhase}
+                onSubmit={handleFinalSubmit}
               />
             )}
           </motion.div>
@@ -349,7 +351,7 @@ function OnboardingWizard() {
 
 export default function NewProjectPage() {
   return (
-    <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center px-4">
+    <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center px-4 py-8">
       <OnboardingWizard />
     </div>
   );

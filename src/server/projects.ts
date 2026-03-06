@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 
 import { z } from "zod";
 
-import { APP_TYPE_IDS, type ProjectMeta } from "@/lib/project-types";
+import { APP_TYPE_IDS, BACKEND_IDS, INFRA_IDS, type ProjectMeta, USER_SCALE_IDS } from "@/lib/project-types";
 
 import { getAuthenticatedUser } from "./auth";
 
@@ -18,6 +18,11 @@ const WizardProjectSchema = z.object({
   name: projectNameSchema,
   app_type: z.enum(APP_TYPE_IDS).optional(),
   is_new_app: z.boolean().optional(),
+  user_scale: z.enum(USER_SCALE_IDS).optional(),
+  infra: z.enum(INFRA_IDS).optional(),
+  backend: z.enum(BACKEND_IDS).optional(),
+  tech_stack: z.array(z.string().min(1).max(50)).max(20).optional(),
+  wizard_description: z.string().max(1000).optional(),
 });
 
 // ─── Actions ──────────────────────────────────────────────────────────────────
@@ -33,8 +38,21 @@ export async function createProject(formData: FormData) {
 }
 
 export async function createProjectFromWizard(input: z.infer<typeof WizardProjectSchema>): Promise<{ id: string }> {
-  const { name, app_type, is_new_app } = WizardProjectSchema.parse(input);
-  const description = JSON.stringify({ app_type: app_type ?? null, is_new_app: is_new_app ?? null });
+  const { name, app_type, is_new_app, user_scale, infra, backend, tech_stack, wizard_description } =
+    WizardProjectSchema.parse(input);
+  const meta: Partial<ProjectMeta> = {
+    app_type: app_type ?? null,
+    is_new_app: is_new_app ?? null,
+    user_scale: user_scale ?? null,
+    infra: infra ?? null,
+    backend: backend ?? null,
+    tech_stack: tech_stack ?? null,
+    wizard_description: wizard_description ?? null,
+    bio: null,
+    sprints: null,
+    releases: null,
+  };
+  const description = JSON.stringify(meta);
   const { supabase, user } = await getAuthenticatedUser();
 
   const { data, error } = await supabase

@@ -58,6 +58,10 @@ export default async function OverviewPage({ params }: Props) {
     tech_stack: null,
     sprints: null,
     releases: null,
+    user_scale: null,
+    infra: null,
+    backend: null,
+    wizard_description: null,
   };
   try {
     if (project?.description) {

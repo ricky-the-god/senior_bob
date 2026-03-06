@@ -7,7 +7,7 @@ import { createClient } from "@/lib/supabase/server";
 export const maxDuration = 30;
 
 const RequestSchema = z.object({
-  prompt: z.string().min(1).max(2000),
+  prompt: z.string().min(1).max(3000),
   currentDiagram: z
     .object({
       nodes: z.array(z.unknown()).max(100),

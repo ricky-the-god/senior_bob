@@ -30,6 +30,15 @@ export type Release = {
   status: "planned" | "in-progress" | "released";
 };
 
+export const USER_SCALE_IDS = ["solo", "small-team", "startup", "scale", "enterprise"] as const;
+export type UserScaleId = (typeof USER_SCALE_IDS)[number];
+
+export const INFRA_IDS = ["serverless", "containers", "microservices", "monolith"] as const;
+export type InfraId = (typeof INFRA_IDS)[number];
+
+export const BACKEND_IDS = ["nodejs", "python", "go", "java-spring", "rust", "none"] as const;
+export type BackendId = (typeof BACKEND_IDS)[number];
+
 export type ProjectMeta = {
   app_type: AppTypeId | null;
   is_new_app: boolean | null;
@@ -37,6 +46,27 @@ export type ProjectMeta = {
   tech_stack: string[] | null;
   sprints: Sprint[] | null;
   releases: Release[] | null;
+  user_scale: UserScaleId | null;
+  infra: InfraId | null;
+  backend: BackendId | null;
+  wizard_description: string | null;
+};
+
+export type WizardRecommendations = {
+  app_type: AppTypeId;
+  app_type_reason: string;
+  is_new_app: boolean;
+  is_new_app_reason: string;
+  tech_stack: string[];
+  tech_stack_reason: string;
+  user_scale: UserScaleId;
+  user_scale_reason: string;
+  infra: InfraId;
+  infra_reason: string;
+  backend: BackendId;
+  backend_reason: string;
+  suggested_name: string;
+  suggested_name_reason: string;
 };
 
 export const APP_TYPES: { id: AppTypeId; label: string; Icon: LucideIcon }[] = [

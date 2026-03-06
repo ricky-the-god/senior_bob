@@ -12,6 +12,8 @@ test-results/
 playwright-report/
 blob-report/
 playwright/.cache/
+# Playwright auth state — contains real session tokens, never commit
+tests/.auth-state.json
 
 # next.js
 /.next/
