@@ -7,9 +7,10 @@ import { BaseNode } from "./base-node";
 
 type ClientNodeData = { label?: string; sublabel?: string };
 
-export function ClientNode({ data, selected }: NodeProps & { data: ClientNodeData }) {
+export function ClientNode({ id, data, selected }: NodeProps & { data: ClientNodeData }) {
   return (
     <BaseNode
+      id={id}
       icon={Monitor}
       label={data.label ?? "Client"}
       sublabel={data.sublabel}

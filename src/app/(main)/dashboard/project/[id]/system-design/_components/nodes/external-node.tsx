@@ -7,9 +7,10 @@ import { BaseNode } from "./base-node";
 
 type ExternalNodeData = { label?: string; sublabel?: string };
 
-export function ExternalNode({ data, selected }: NodeProps & { data: ExternalNodeData }) {
+export function ExternalNode({ id, data, selected }: NodeProps & { data: ExternalNodeData }) {
   return (
     <BaseNode
+      id={id}
       icon={Globe}
       label={data.label ?? "External"}
       sublabel={data.sublabel}

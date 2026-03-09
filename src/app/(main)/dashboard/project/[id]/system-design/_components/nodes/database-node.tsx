@@ -7,9 +7,10 @@ import { BaseNode } from "./base-node";
 
 type DatabaseNodeData = { label?: string; sublabel?: string };
 
-export function DatabaseNode({ data, selected }: NodeProps & { data: DatabaseNodeData }) {
+export function DatabaseNode({ id, data, selected }: NodeProps & { data: DatabaseNodeData }) {
   return (
     <BaseNode
+      id={id}
       icon={Database}
       label={data.label ?? "Database"}
       sublabel={data.sublabel}

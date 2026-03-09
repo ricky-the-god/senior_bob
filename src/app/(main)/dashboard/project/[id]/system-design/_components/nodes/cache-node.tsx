@@ -7,9 +7,10 @@ import { BaseNode } from "./base-node";
 
 type CacheNodeData = { label?: string; sublabel?: string };
 
-export function CacheNode({ data, selected }: NodeProps & { data: CacheNodeData }) {
+export function CacheNode({ id, data, selected }: NodeProps & { data: CacheNodeData }) {
   return (
     <BaseNode
+      id={id}
       icon={Zap}
       label={data.label ?? "Cache"}
       sublabel={data.sublabel}

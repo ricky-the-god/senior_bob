@@ -7,9 +7,10 @@ import { BaseNode } from "./base-node";
 
 type GatewayNodeData = { label?: string; sublabel?: string };
 
-export function GatewayNode({ data, selected }: NodeProps & { data: GatewayNodeData }) {
+export function GatewayNode({ id, data, selected }: NodeProps & { data: GatewayNodeData }) {
   return (
     <BaseNode
+      id={id}
       icon={Network}
       label={data.label ?? "API Gateway"}
       sublabel={data.sublabel}

@@ -7,9 +7,10 @@ import { BaseNode } from "./base-node";
 
 type ServiceNodeData = { label?: string; sublabel?: string };
 
-export function ServiceNode({ data, selected }: NodeProps & { data: ServiceNodeData }) {
+export function ServiceNode({ id, data, selected }: NodeProps & { data: ServiceNodeData }) {
   return (
     <BaseNode
+      id={id}
       icon={Server}
       label={data.label ?? "Service"}
       sublabel={data.sublabel}
