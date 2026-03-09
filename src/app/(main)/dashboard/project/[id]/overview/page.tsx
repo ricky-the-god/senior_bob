@@ -7,6 +7,7 @@ import { getProjectMembers } from "@/lib/queries/get-project-members";
 import { createClient } from "@/lib/supabase/server";
 
 import { DangerZone } from "./_components/danger-zone";
+import { DescriptionSection } from "./_components/description-section";
 import { ProjectHeader } from "./_components/project-header";
 import { ReleasesSection } from "./_components/releases-section";
 import { SprintsSection } from "./_components/sprints-section";
@@ -56,9 +57,14 @@ export default async function OverviewPage({ params }: Props) {
   const appType = meta.app_type ? (APP_TYPE_MAP[meta.app_type] ?? null) : null;
 
   return (
-    <div className="flex flex-1 flex-col gap-6 overflow-y-auto">
+    <div className="flex flex-1 flex-col gap-6 overflow-y-auto p-6">
       {/* Header — editable name + bio */}
       <ProjectHeader projectId={id} name={project?.name ?? "Project"} bio={meta.bio ?? null} />
+
+      {/* LLM context description */}
+      <DescriptionSection projectId={id} description={meta.wizard_description ?? null} />
+
+      <Divider />
 
       {/* Metadata card */}
       <div className="rounded-xl border border-border bg-card px-4">
@@ -114,7 +120,7 @@ export default async function OverviewPage({ params }: Props) {
       <Divider />
 
       {/* Sprints */}
-      <SprintsSection projectId={id} sprints={meta.sprints ?? []} />
+      <SprintsSection taskSprints={meta.task_sprints ?? []} />
 
       <Divider />
 

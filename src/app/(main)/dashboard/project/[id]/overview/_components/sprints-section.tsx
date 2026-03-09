@@ -1,136 +1,66 @@
-"use client";
-
-import { useState, useTransition } from "react";
-
-import { Plus, Trash2 } from "lucide-react";
-
-import { Progress } from "@/components/ui/progress";
-import type { Sprint } from "@/lib/project-types";
-import { updateProjectMeta } from "@/server/projects";
+import type { TaskSprint } from "@/lib/project-types";
 
 type Props = {
-  projectId: string;
-  sprints: Sprint[];
+  taskSprints: TaskSprint[];
 };
 
-const EMPTY_FORM = { name: "", completed: "", total: "" };
-
-export function SprintsSection({ projectId, sprints: initial }: Props) {
-  const [sprints, setSprints] = useState(initial);
-  const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState(EMPTY_FORM);
-  const [, startTransition] = useTransition();
-
-  function save(next: Sprint[]) {
-    setSprints(next);
-    startTransition(async () => {
-      await updateProjectMeta(projectId, { sprints: next.length ? next : null });
-    });
-  }
-
-  function addSprint() {
-    const name = form.name.trim();
-    const total = Math.max(1, parseInt(form.total, 10) || 1);
-    const completed = Math.min(total, Math.max(0, parseInt(form.completed, 10) || 0));
-    if (!name) return;
-    const newSprint: Sprint = { id: crypto.randomUUID(), name, completed, total };
-    save([...sprints, newSprint]);
-    setForm(EMPTY_FORM);
-    setShowForm(false);
-  }
-
-  function removeSprint(id: string) {
-    save(sprints.filter((s) => s.id !== id));
-  }
-
+export function SprintsSection({ taskSprints }: Props) {
   return (
     <section className="space-y-3">
-      <h2 className="font-medium text-muted-foreground text-xs uppercase tracking-wider">Sprints</h2>
+      <h2 className="font-medium text-muted-foreground text-xs uppercase tracking-wider">Engineering Backlog</h2>
 
-      <div className="space-y-2.5">
-        {sprints.map((sprint) => {
-          const pct = sprint.total > 0 ? Math.round((sprint.completed / sprint.total) * 100) : 0;
-          return (
-            <div key={sprint.id} className="group flex items-center gap-3">
-              <div className="min-w-0 flex-1">
-                <div className="mb-1.5 flex items-center justify-between">
-                  <span className="truncate text-foreground text-xs">{sprint.name}</span>
-                  <span className="ml-2 shrink-0 text-muted-foreground text-xs">
-                    {sprint.completed}/{sprint.total} · {pct}%
-                  </span>
-                </div>
-                <Progress value={pct} className="h-1.5" />
-              </div>
-              <button
-                type="button"
-                onClick={() => removeSprint(sprint.id)}
-                className="text-muted-foreground/40 opacity-0 transition-all hover:text-destructive group-hover:opacity-100"
-                aria-label="Delete sprint"
-              >
-                <Trash2 className="size-3.5" />
-              </button>
-            </div>
-          );
-        })}
-      </div>
-
-      {showForm ? (
-        <div className="space-y-2 rounded-lg border border-border bg-card/50 p-3">
-          <input
-            value={form.name}
-            onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-            placeholder="Sprint name"
-            className="w-full border-border border-b bg-transparent pb-1 text-foreground text-xs outline-none focus:border-foreground/30"
-          />
-          <div className="flex gap-2">
-            <input
-              type="number"
-              min={0}
-              value={form.completed}
-              onChange={(e) => setForm((f) => ({ ...f, completed: e.target.value }))}
-              placeholder="Done"
-              className="w-16 border-border border-b bg-transparent pb-1 text-foreground text-xs outline-none focus:border-foreground/30"
-            />
-            <span className="self-end pb-1 text-muted-foreground text-xs">/</span>
-            <input
-              type="number"
-              min={1}
-              value={form.total}
-              onChange={(e) => setForm((f) => ({ ...f, total: e.target.value }))}
-              placeholder="Total"
-              className="w-16 border-border border-b bg-transparent pb-1 text-foreground text-xs outline-none focus:border-foreground/30"
-            />
-            <span className="self-end pb-1 text-muted-foreground text-xs">tasks</span>
-          </div>
-          <div className="flex gap-2 pt-1">
-            <button
-              type="button"
-              onClick={addSprint}
-              className="rounded bg-foreground/8 px-2.5 py-1 text-foreground text-xs transition-colors hover:bg-foreground/12"
-            >
-              Add
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setShowForm(false);
-                setForm(EMPTY_FORM);
-              }}
-              className="px-2 text-muted-foreground text-xs transition-colors hover:text-foreground"
-            >
-              Cancel
-            </button>
-          </div>
-        </div>
+      {taskSprints.length === 0 ? (
+        <p className="text-muted-foreground text-xs">No sprints yet — generate tasks from System Design.</p>
       ) : (
-        <button
-          type="button"
-          onClick={() => setShowForm(true)}
-          className="flex items-center gap-1.5 text-muted-foreground text-xs transition-colors hover:text-foreground"
-        >
-          <Plus className="size-3" />
-          Add Sprint
-        </button>
+        <div className="space-y-4">
+          {taskSprints.map((sprint, index) => {
+            const total = sprint.tasks.length;
+            const done = sprint.tasks.filter((t) => t.status === "done").length;
+            const isStub = total === 0;
+            const pct = total > 0 ? Math.round((done / total) * 100) : 0;
+            const isComplete = !isStub && pct === 100;
+
+            return (
+              <div key={sprint.id} className="space-y-1.5">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex min-w-0 items-center gap-2">
+                    <span className="rounded bg-foreground/8 px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground/60">
+                      S{index + 1}
+                    </span>
+                    <span className="truncate font-medium text-foreground text-xs">{sprint.name}</span>
+                    {isComplete && (
+                      <span className="rounded-full bg-emerald-500/15 px-1.5 py-0.5 text-[10px] text-emerald-400">
+                        Complete
+                      </span>
+                    )}
+                    {isStub && (
+                      <span className="rounded-full bg-foreground/8 px-1.5 py-0.5 text-[10px] text-muted-foreground/40">
+                        Pending
+                      </span>
+                    )}
+                  </div>
+                  {!isStub && (
+                    <span className="shrink-0 tabular-nums text-muted-foreground text-[11px]">
+                      {done}/{total} · {pct}%
+                    </span>
+                  )}
+                </div>
+
+                {/* Progress bar */}
+                <div className="relative h-1.5 w-full overflow-hidden rounded-full bg-foreground/6">
+                  {!isStub && pct > 0 && (
+                    <div
+                      className="absolute inset-y-0 left-0 rounded-full bg-gradient-to-r from-indigo-500 to-violet-500 transition-all duration-500"
+                      style={{ width: `${pct}%` }}
+                    />
+                  )}
+                </div>
+
+                <p className="truncate text-muted-foreground/50 text-[11px]">{sprint.goal}</p>
+              </div>
+            );
+          })}
+        </div>
       )}
     </section>
   );
