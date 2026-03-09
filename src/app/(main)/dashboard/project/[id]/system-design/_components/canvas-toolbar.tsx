@@ -1,6 +1,6 @@
 "use client";
 
-import { Bot, Check, Expand, Loader2, Minus, Plus, X } from "lucide-react";
+import { Bot, Check, Expand, Loader2, Minus, Plus, Sparkles, X } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 
@@ -14,6 +14,8 @@ type Props = {
   onOpenCommandPalette: () => void;
   onToggleAiPanel: () => void;
   aiPanelOpen: boolean;
+  onGenerateTasks: () => void;
+  generatingTasks: boolean;
 };
 
 export function CanvasToolbar({
@@ -26,6 +28,8 @@ export function CanvasToolbar({
   onOpenCommandPalette,
   onToggleAiPanel,
   aiPanelOpen,
+  onGenerateTasks,
+  generatingTasks,
 }: Props) {
   return (
     <div className="flex h-11 flex-shrink-0 items-center gap-2 border-border border-b bg-card/80 px-3 backdrop-blur-sm">
@@ -113,6 +117,26 @@ export function CanvasToolbar({
         title={aiPanelOpen ? "Close AI panel" : "Open AI panel"}
       >
         {aiPanelOpen ? <X className="size-3.5" /> : <Bot className="size-3.5" />}
+      </button>
+
+      {/* Generate Tasks */}
+      <button
+        type="button"
+        onClick={onGenerateTasks}
+        disabled={generatingTasks}
+        className="flex h-7 items-center gap-1.5 rounded-md border border-border bg-foreground px-2.5 text-background text-xs font-medium transition-colors hover:bg-foreground/90 disabled:cursor-not-allowed disabled:opacity-60"
+      >
+        {generatingTasks ? (
+          <>
+            <Loader2 className="size-3 animate-spin" />
+            <span>Generating…</span>
+          </>
+        ) : (
+          <>
+            <Sparkles className="size-3" />
+            <span>Generate Tasks</span>
+          </>
+        )}
       </button>
     </div>
   );

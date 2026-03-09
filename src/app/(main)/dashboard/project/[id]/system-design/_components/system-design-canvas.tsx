@@ -18,10 +18,14 @@ import {
 import "@xyflow/react/dist/style.css";
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import { Network } from "lucide-react";
+import { useRouter } from "next/navigation";
+
+import { Loader2, Network, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 
+import type { ProjectMeta, TaskSprint } from "@/lib/project-types";
 import { saveDiagram } from "@/server/diagrams";
+import { updateProjectMeta } from "@/server/projects";
 
 import { AiCommandPalette } from "./ai-command-palette";
 import { AiPanel } from "./ai-panel";
@@ -35,15 +39,18 @@ type Props = {
   projectId: string;
   projectName: string;
   initialData: DiagramData | null;
+  projectMeta?: Pick<ProjectMeta, "app_type" | "tech_stack" | "wizard_description" | "infra" | "backend">;
 };
 
-function CanvasInner({ projectId, projectName, initialData }: Props) {
+function CanvasInner({ projectId, projectName, initialData, projectMeta }: Props) {
   const [nodes, setNodes, onNodesChange] = useNodesState<Node>(initialData?.nodes ?? []);
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>(initialData?.edges ?? []);
   const [aiPanelOpen, setAiPanelOpen] = useState(false);
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
   const [saveState, setSaveState] = useState<"idle" | "saving" | "saved">("idle");
   const [isCanvasVisible, setIsCanvasVisible] = useState(!!initialData);
+  const [generatingTasks, setGeneratingTasks] = useState(false);
+  const router = useRouter();
 
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -136,6 +143,42 @@ function CanvasInner({ projectId, projectName, initialData }: Props) {
     [setNodes, setEdges, fitView],
   );
 
+  // ── Generate Tasks ────────────────────────────────────────────────────────
+  const handleGenerateTasks = useCallback(async () => {
+    if (nodes.length === 0) {
+      toast.error("Add nodes to your diagram first");
+      return;
+    }
+    setGeneratingTasks(true);
+    try {
+      const res = await fetch("/api/tasks/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          diagram: { nodes, edges },
+          context: projectMeta
+            ? {
+                app_type: projectMeta.app_type ?? undefined,
+                tech_stack: projectMeta.tech_stack ?? undefined,
+                wizard_description: projectMeta.wizard_description ?? undefined,
+                infra: projectMeta.infra ?? undefined,
+                backend: projectMeta.backend ?? undefined,
+              }
+            : undefined,
+        }),
+      });
+      if (!res.ok) throw new Error("Generation failed");
+      const data = (await res.json()) as { sprints: TaskSprint[] };
+      await updateProjectMeta(projectId, { task_sprints: data.sprints });
+      toast.success("Tasks generated");
+      router.push(`/dashboard/project/${projectId}/tasks`);
+    } catch {
+      toast.error("Failed to generate tasks");
+    } finally {
+      setGeneratingTasks(false);
+    }
+  }, [nodes, edges, projectId, projectMeta, router]);
+
   // ── Empty state overlay ───────────────────────────────────────────────────
   if (!isCanvasVisible) {
     return (
@@ -173,6 +216,8 @@ function CanvasInner({ projectId, projectName, initialData }: Props) {
         onOpenCommandPalette={() => setCommandPaletteOpen(true)}
         onToggleAiPanel={() => setAiPanelOpen((v) => !v)}
         aiPanelOpen={aiPanelOpen}
+        onGenerateTasks={handleGenerateTasks}
+        generatingTasks={generatingTasks}
       />
 
       <div className="flex flex-1 overflow-hidden">
@@ -222,10 +267,15 @@ function CanvasInner({ projectId, projectName, initialData }: Props) {
   );
 }
 
-export function SystemDesignCanvas({ projectId, projectName, initialData }: Props) {
+export function SystemDesignCanvas({ projectId, projectName, initialData, projectMeta }: Props) {
   return (
     <ReactFlowProvider>
-      <CanvasInner projectId={projectId} projectName={projectName} initialData={initialData} />
+      <CanvasInner
+        projectId={projectId}
+        projectName={projectName}
+        initialData={initialData}
+        projectMeta={projectMeta}
+      />
     </ReactFlowProvider>
   );
 }

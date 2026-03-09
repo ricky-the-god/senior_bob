@@ -39,6 +39,27 @@ export type InfraId = (typeof INFRA_IDS)[number];
 export const BACKEND_IDS = ["nodejs", "python", "go", "java-spring", "rust", "none"] as const;
 export type BackendId = (typeof BACKEND_IDS)[number];
 
+export type TaskPriority = "critical" | "high" | "medium" | "low";
+export type TaskSize = "xs" | "s" | "m" | "l" | "xl";
+export type TaskStatus = "todo" | "in-progress" | "done";
+
+export type Task = {
+  id: string;
+  title: string;
+  description: string;
+  priority: TaskPriority;
+  size: TaskSize;
+  component: string;
+  status: TaskStatus;
+};
+
+export type TaskSprint = {
+  id: string;
+  name: string;
+  goal: string;
+  tasks: Task[];
+};
+
 export type ProjectMeta = {
   app_type: AppTypeId | null;
   is_new_app: boolean | null;
@@ -50,6 +71,7 @@ export type ProjectMeta = {
   infra: InfraId | null;
   backend: BackendId | null;
   wizard_description: string | null;
+  task_sprints: TaskSprint[] | null;
 };
 
 export type WizardRecommendations = {
