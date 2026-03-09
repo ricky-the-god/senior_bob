@@ -15,6 +15,7 @@ type Props = {
   onToggleAiPanel: () => void;
   aiPanelOpen: boolean;
   onSave: () => void;
+  isDirty: boolean;
   onGenerateTasks: () => void;
   generatingTasks: boolean;
 };
@@ -30,6 +31,7 @@ export function CanvasToolbar({
   onToggleAiPanel,
   aiPanelOpen,
   onSave,
+  isDirty,
   onGenerateTasks,
   generatingTasks,
 }: Props) {
@@ -44,7 +46,7 @@ export function CanvasToolbar({
       <button
         type="button"
         onClick={onSave}
-        disabled={saveState === "saving" || saveState === "saved"}
+        disabled={!isDirty || saveState === "saving" || saveState === "saved"}
         className={cn(
           "flex h-7 items-center gap-1.5 rounded-md border border-border px-2 text-xs transition-colors",
           saveState === "saved"
@@ -133,7 +135,7 @@ export function CanvasToolbar({
         type="button"
         onClick={onGenerateTasks}
         disabled={generatingTasks}
-        className="flex h-7 items-center gap-1.5 rounded-md border border-border bg-foreground px-2.5 text-background text-xs font-medium transition-colors hover:bg-foreground/90 disabled:cursor-not-allowed disabled:opacity-60"
+        className="flex h-7 items-center gap-1.5 rounded-md border border-border bg-foreground px-2.5 font-medium text-background text-xs transition-colors hover:bg-foreground/90 disabled:cursor-not-allowed disabled:opacity-60"
       >
         {generatingTasks ? (
           <>

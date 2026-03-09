@@ -20,7 +20,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import { useRouter } from "next/navigation";
 
-import { Loader2, Network, Sparkles } from "lucide-react";
+import { Network } from "lucide-react";
 import { toast } from "sonner";
 
 import { generateAndSaveTasks } from "@/lib/api/tasks";
@@ -48,15 +48,28 @@ function CanvasInner({ projectId, projectName, initialData, projectMeta }: Props
   const [aiPanelOpen, setAiPanelOpen] = useState(false);
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
   const [saveState, setSaveState] = useState<"idle" | "saving" | "saved">("idle");
+  const [isDirty, setIsDirty] = useState(false);
   const [isCanvasVisible, setIsCanvasVisible] = useState(!!initialData);
   const [generatingTasks, setGeneratingTasks] = useState(false);
   const router = useRouter();
 
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Skip the initial render so that loading initialData doesn't mark the canvas dirty
+  const isMounted = useRef(false);
 
   // S3: useViewport() is reactive — no getViewport() in render body
   const { zoom } = useViewport();
   const { fitView, zoomIn, zoomOut, screenToFlowPosition } = useReactFlow();
+
+  // ── Track dirty state — skip initial mount so loading data doesn't trigger ─
+  // biome-ignore lint/correctness/useExhaustiveDependencies: nodes/edges are in deps to trigger on mutation; their values are not read in the body
+  useEffect(() => {
+    if (!isMounted.current) {
+      isMounted.current = true;
+      return;
+    }
+    setIsDirty(true);
+  }, [nodes, edges]);
 
   // ── Core save function (shared by auto-save and manual save) ─────────────
   const doSave = useCallback(
@@ -65,6 +78,7 @@ function CanvasInner({ projectId, projectName, initialData, projectMeta }: Props
       try {
         await saveDiagram(projectId, "system-design", { nodes: currentNodes, edges: currentEdges });
         setSaveState("saved");
+        setIsDirty(false);
         setTimeout(() => setSaveState("idle"), 2000);
       } catch {
         setSaveState("idle");
@@ -74,21 +88,22 @@ function CanvasInner({ projectId, projectName, initialData, projectMeta }: Props
     [projectId],
   );
 
-  // ── Auto-save (1.5s debounce after changes) ───────────────────────────────
+  // ── Auto-save (1.5s debounce, only when dirty) ────────────────────────────
   useEffect(() => {
-    if (!isCanvasVisible) return;
+    if (!isCanvasVisible || !isDirty) return;
     if (saveTimer.current) clearTimeout(saveTimer.current);
     saveTimer.current = setTimeout(() => doSave(nodes, edges), 1500);
     return () => {
       if (saveTimer.current) clearTimeout(saveTimer.current);
     };
-  }, [nodes, edges, isCanvasVisible, doSave]);
+  }, [nodes, edges, isDirty, isCanvasVisible, doSave]);
 
   // ── Manual save ───────────────────────────────────────────────────────────
   const handleSave = useCallback(() => {
+    if (!isDirty) return;
     if (saveTimer.current) clearTimeout(saveTimer.current);
     doSave(nodes, edges);
-  }, [nodes, edges, doSave]);
+  }, [nodes, edges, isDirty, doSave]);
 
   // ── Keyboard shortcuts (⌘K = AI palette, ⌘S = save) ─────────────────────
   useEffect(() => {
@@ -216,6 +231,7 @@ function CanvasInner({ projectId, projectName, initialData, projectMeta }: Props
         onToggleAiPanel={() => setAiPanelOpen((v) => !v)}
         aiPanelOpen={aiPanelOpen}
         onSave={handleSave}
+        isDirty={isDirty}
         onGenerateTasks={handleGenerateTasks}
         generatingTasks={generatingTasks}
       />
