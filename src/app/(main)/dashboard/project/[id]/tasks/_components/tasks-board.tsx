@@ -1,12 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useState } from "react";
 
 import { useRouter } from "next/navigation";
 
 import { ChevronDown, ChevronRight, Loader2, Network, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 
+import { generateAndSaveTasks } from "@/lib/api/tasks";
 import type { ProjectMeta, Task, TaskSprint, TaskStatus } from "@/lib/project-types";
 import { cn } from "@/lib/utils";
 import { updateProjectMeta } from "@/server/projects";
@@ -20,13 +21,8 @@ const PRIORITY_STYLES: Record<Task["priority"], string> = {
   low: "bg-slate-500/15 text-slate-400",
 };
 
-const SIZE_STYLES: Record<Task["size"], string> = {
-  xs: "bg-violet-500/15 text-violet-400",
-  s: "bg-violet-500/15 text-violet-400",
-  m: "bg-violet-500/15 text-violet-400",
-  l: "bg-violet-500/15 text-violet-400",
-  xl: "bg-violet-500/15 text-violet-400",
-};
+// All sizes share the same visual style in v1; use a Record if differentiation is needed later
+const SIZE_STYLE = "bg-violet-500/15 text-violet-400";
 
 const SIZE_LABELS: Record<Task["size"], string> = {
   xs: "XS · ~1h",
@@ -70,7 +66,7 @@ function TaskCard({ task, onStatusChange }: { task: Task; onStatusChange: (id: s
         </span>
 
         {/* Size */}
-        <span className={cn("rounded px-1.5 py-0.5 font-medium text-[11px]", SIZE_STYLES[task.size])}>
+        <span className={cn("rounded px-1.5 py-0.5 font-medium text-[11px]", SIZE_STYLE)}>
           {SIZE_LABELS[task.size]}
         </span>
 
@@ -108,25 +104,25 @@ function SprintSection({
   const doneCount = sprint.tasks.filter((t) => t.status === "done").length;
 
   return (
-    <div className="rounded-xl border border-border bg-card overflow-hidden">
+    <div className="overflow-hidden rounded-xl border border-border bg-card">
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="flex w-full items-center gap-2 px-4 py-3 text-left hover:bg-foreground/[0.02] transition-colors"
+        className="flex w-full items-center gap-2 px-4 py-3 text-left transition-colors hover:bg-foreground/[0.02]"
       >
         {open ? (
           <ChevronDown className="size-3.5 flex-shrink-0 text-muted-foreground" />
         ) : (
           <ChevronRight className="size-3.5 flex-shrink-0 text-muted-foreground" />
         )}
-        <div className="flex-1 min-w-0">
+        <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
             <span className="font-semibold text-foreground text-sm">{sprint.name}</span>
             <span className="rounded-full bg-foreground/8 px-2 py-0.5 text-[11px] text-muted-foreground">
               {doneCount}/{sprint.tasks.length}
             </span>
           </div>
-          <p className="mt-0.5 text-muted-foreground text-xs leading-relaxed truncate">{sprint.goal}</p>
+          <p className="mt-0.5 truncate text-muted-foreground text-xs leading-relaxed">{sprint.goal}</p>
         </div>
       </button>
 
@@ -154,53 +150,39 @@ export function TasksBoard({ projectId, taskSprints: initialSprints, projectMeta
   const [sprints, setSprints] = useState<TaskSprint[] | null>(initialSprints);
   const [regenerating, setRegenerating] = useState(false);
 
-  const handleStatusChange = async (taskId: string, newStatus: TaskStatus) => {
-    if (!sprints) return;
+  const handleStatusChange = useCallback(
+    async (taskId: string, newStatus: TaskStatus) => {
+      if (!sprints) return;
+      const updated = sprints.map((s) => ({
+        ...s,
+        tasks: s.tasks.map((t) => (t.id === taskId ? { ...t, status: newStatus } : t)),
+      }));
+      setSprints(updated); // optimistic update
+      try {
+        await updateProjectMeta(projectId, { task_sprints: updated });
+      } catch {
+        setSprints(sprints); // revert on failure
+        toast.error("Failed to update task");
+      }
+    },
+    [sprints, projectId],
+  );
 
-    // Optimistic update
-    const updated = sprints.map((s) => ({
-      ...s,
-      tasks: s.tasks.map((t) => (t.id === taskId ? { ...t, status: newStatus } : t)),
-    }));
-    setSprints(updated);
-
-    try {
-      await updateProjectMeta(projectId, { task_sprints: updated });
-    } catch {
-      // Revert on failure
-      setSprints(sprints);
-      toast.error("Failed to update task");
-    }
-  };
-
-  const handleRegenerate = async () => {
+  const handleRegenerate = useCallback(async () => {
+    // Regenerating from the tasks board has no access to live canvas nodes/edges.
+    // Tasks are generated from project context only — open System Design for diagram-aware generation.
+    toast.warning("Regenerating from project context — for diagram-aware tasks, use System Design");
     setRegenerating(true);
     try {
-      const res = await fetch("/api/tasks/generate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          diagram: { nodes: [], edges: [] },
-          context: {
-            app_type: projectMeta.app_type ?? undefined,
-            tech_stack: projectMeta.tech_stack ?? undefined,
-            wizard_description: projectMeta.wizard_description ?? undefined,
-            infra: projectMeta.infra ?? undefined,
-            backend: projectMeta.backend ?? undefined,
-          },
-        }),
-      });
-      if (!res.ok) throw new Error("Regeneration failed");
-      const data = (await res.json()) as { sprints: TaskSprint[] };
-      await updateProjectMeta(projectId, { task_sprints: data.sprints });
-      setSprints(data.sprints);
+      const newSprints = await generateAndSaveTasks(projectId, { nodes: [], edges: [] }, projectMeta);
+      setSprints(newSprints);
       toast.success("Tasks regenerated");
     } catch {
       toast.error("Failed to regenerate tasks");
     } finally {
       setRegenerating(false);
     }
-  };
+  }, [projectId, projectMeta]);
 
   // ── Empty state ──────────────────────────────────────────────────────────
   if (!sprints || sprints.length === 0) {

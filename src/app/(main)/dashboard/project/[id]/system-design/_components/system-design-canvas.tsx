@@ -23,9 +23,9 @@ import { useRouter } from "next/navigation";
 import { Loader2, Network, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 
-import type { ProjectMeta, TaskSprint } from "@/lib/project-types";
+import { generateAndSaveTasks } from "@/lib/api/tasks";
+import type { ProjectMeta } from "@/lib/project-types";
 import { saveDiagram } from "@/server/diagrams";
-import { updateProjectMeta } from "@/server/projects";
 
 import { AiCommandPalette } from "./ai-command-palette";
 import { AiPanel } from "./ai-panel";
@@ -151,25 +151,7 @@ function CanvasInner({ projectId, projectName, initialData, projectMeta }: Props
     }
     setGeneratingTasks(true);
     try {
-      const res = await fetch("/api/tasks/generate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          diagram: { nodes, edges },
-          context: projectMeta
-            ? {
-                app_type: projectMeta.app_type ?? undefined,
-                tech_stack: projectMeta.tech_stack ?? undefined,
-                wizard_description: projectMeta.wizard_description ?? undefined,
-                infra: projectMeta.infra ?? undefined,
-                backend: projectMeta.backend ?? undefined,
-              }
-            : undefined,
-        }),
-      });
-      if (!res.ok) throw new Error("Generation failed");
-      const data = (await res.json()) as { sprints: TaskSprint[] };
-      await updateProjectMeta(projectId, { task_sprints: data.sprints });
+      await generateAndSaveTasks(projectId, { nodes, edges }, projectMeta ?? null);
       toast.success("Tasks generated");
       router.push(`/dashboard/project/${projectId}/tasks`);
     } catch {

@@ -1,7 +1,7 @@
 import { formatDistanceToNow } from "date-fns";
 import { Building2, Sparkles } from "lucide-react";
 
-import { APP_TYPE_MAP, type ProjectMeta } from "@/lib/project-types";
+import { APP_TYPE_MAP, parseProjectMeta } from "@/lib/project-types";
 import { getProject } from "@/lib/queries/get-project";
 import { getProjectMembers } from "@/lib/queries/get-project-members";
 import { createClient } from "@/lib/supabase/server";
@@ -51,26 +51,7 @@ export default async function OverviewPage({ params }: Props) {
 
   const isOwner = !!user && project?.owner_id === user.id;
 
-  let meta: ProjectMeta = {
-    app_type: null,
-    is_new_app: null,
-    bio: null,
-    tech_stack: null,
-    sprints: null,
-    releases: null,
-    user_scale: null,
-    infra: null,
-    backend: null,
-    wizard_description: null,
-    task_sprints: null,
-  };
-  try {
-    if (project?.description) {
-      meta = { ...meta, ...(JSON.parse(project.description) as Partial<ProjectMeta>) };
-    }
-  } catch {
-    // malformed JSON — use defaults
-  }
+  const meta = parseProjectMeta(project?.description ?? null);
 
   const appType = meta.app_type ? (APP_TYPE_MAP[meta.app_type] ?? null) : null;
 

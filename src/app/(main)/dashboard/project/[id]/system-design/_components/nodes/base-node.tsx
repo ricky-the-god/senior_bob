@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { Handle, NodeToolbar, Position, useReactFlow } from "@xyflow/react";
 import type { LucideIcon } from "lucide-react";
@@ -24,11 +24,14 @@ export function BaseNode({ id, icon: Icon, label, sublabel, selected, dashed, ac
   const [draft, setDraft] = useState(label);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  // Focus input after React commits the editing state to the DOM
+  useEffect(() => {
+    if (editing) inputRef.current?.select();
+  }, [editing]);
+
   function startEdit() {
     setDraft(label);
     setEditing(true);
-    // focus after render
-    setTimeout(() => inputRef.current?.select(), 0);
   }
 
   function commitEdit() {

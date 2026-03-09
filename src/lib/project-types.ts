@@ -74,6 +74,30 @@ export type ProjectMeta = {
   task_sprints: TaskSprint[] | null;
 };
 
+export const DEFAULT_PROJECT_META: ProjectMeta = {
+  app_type: null,
+  is_new_app: null,
+  bio: null,
+  tech_stack: null,
+  sprints: null,
+  releases: null,
+  user_scale: null,
+  infra: null,
+  backend: null,
+  wizard_description: null,
+  task_sprints: null,
+};
+
+export function parseProjectMeta(description: string | null): ProjectMeta {
+  if (!description) return { ...DEFAULT_PROJECT_META };
+  try {
+    const raw = JSON.parse(description) as Partial<ProjectMeta>;
+    return { ...DEFAULT_PROJECT_META, ...raw };
+  } catch {
+    return { ...DEFAULT_PROJECT_META };
+  }
+}
+
 export type WizardRecommendations = {
   app_type: AppTypeId;
   app_type_reason: string;
