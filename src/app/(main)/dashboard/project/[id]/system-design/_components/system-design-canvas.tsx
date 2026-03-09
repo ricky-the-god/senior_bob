@@ -58,37 +58,54 @@ function CanvasInner({ projectId, projectName, initialData, projectMeta }: Props
   const { zoom } = useViewport();
   const { fitView, zoomIn, zoomOut, screenToFlowPosition } = useReactFlow();
 
-  // ── Auto-save ────────────────────────────────────────────────────────────
-  useEffect(() => {
-    if (!isCanvasVisible) return;
-    if (saveTimer.current) clearTimeout(saveTimer.current);
-    saveTimer.current = setTimeout(async () => {
+  // ── Core save function (shared by auto-save and manual save) ─────────────
+  const doSave = useCallback(
+    async (currentNodes: Node[], currentEdges: Edge[]) => {
       setSaveState("saving");
       try {
-        await saveDiagram(projectId, "system-design", { nodes, edges });
+        await saveDiagram(projectId, "system-design", { nodes: currentNodes, edges: currentEdges });
         setSaveState("saved");
         setTimeout(() => setSaveState("idle"), 2000);
       } catch {
         setSaveState("idle");
         toast.error("Failed to save diagram");
       }
-    }, 1500);
+    },
+    [projectId],
+  );
+
+  // ── Auto-save (1.5s debounce after changes) ───────────────────────────────
+  useEffect(() => {
+    if (!isCanvasVisible) return;
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+    saveTimer.current = setTimeout(() => doSave(nodes, edges), 1500);
     return () => {
       if (saveTimer.current) clearTimeout(saveTimer.current);
     };
-  }, [nodes, edges, projectId, isCanvasVisible]);
+  }, [nodes, edges, isCanvasVisible, doSave]);
 
-  // ── ⌘K shortcut ─────────────────────────────────────────────────────────
+  // ── Manual save ───────────────────────────────────────────────────────────
+  const handleSave = useCallback(() => {
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+    doSave(nodes, edges);
+  }, [nodes, edges, doSave]);
+
+  // ── Keyboard shortcuts (⌘K = AI palette, ⌘S = save) ─────────────────────
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
-      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
+      if (!(e.metaKey || e.ctrlKey)) return;
+      if (e.key === "k") {
         e.preventDefault();
         setCommandPaletteOpen(true);
+      }
+      if (e.key === "s") {
+        e.preventDefault();
+        handleSave();
       }
     }
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, []);
+  }, [handleSave]);
 
   // ── Edge connection ──────────────────────────────────────────────────────
   const onConnect = useCallback(
@@ -198,6 +215,7 @@ function CanvasInner({ projectId, projectName, initialData, projectMeta }: Props
         onOpenCommandPalette={() => setCommandPaletteOpen(true)}
         onToggleAiPanel={() => setAiPanelOpen((v) => !v)}
         aiPanelOpen={aiPanelOpen}
+        onSave={handleSave}
         onGenerateTasks={handleGenerateTasks}
         generatingTasks={generatingTasks}
       />

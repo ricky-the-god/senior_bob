@@ -1,6 +1,6 @@
 "use client";
 
-import { Bot, Check, Expand, Loader2, Minus, Plus, Sparkles, X } from "lucide-react";
+import { Bot, Check, Expand, Loader2, Minus, Plus, Save, Sparkles, X } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 
@@ -14,6 +14,7 @@ type Props = {
   onOpenCommandPalette: () => void;
   onToggleAiPanel: () => void;
   aiPanelOpen: boolean;
+  onSave: () => void;
   onGenerateTasks: () => void;
   generatingTasks: boolean;
 };
@@ -28,6 +29,7 @@ export function CanvasToolbar({
   onOpenCommandPalette,
   onToggleAiPanel,
   aiPanelOpen,
+  onSave,
   onGenerateTasks,
   generatingTasks,
 }: Props) {
@@ -36,23 +38,30 @@ export function CanvasToolbar({
       {/* Title */}
       <span className="max-w-[160px] truncate font-medium text-foreground text-sm">{title}</span>
 
-      {/* Save indicator */}
-      <div className="flex items-center gap-1 text-muted-foreground text-xs">
-        {saveState === "saving" && (
-          <>
-            <Loader2 className="size-3 animate-spin" />
-            <span>Saving…</span>
-          </>
-        )}
-        {saveState === "saved" && (
-          <>
-            <Check className="size-3 text-emerald-500" />
-            <span className="text-emerald-500">Saved</span>
-          </>
-        )}
-      </div>
-
       <div className="flex-1" />
+
+      {/* Manual save */}
+      <button
+        type="button"
+        onClick={onSave}
+        disabled={saveState === "saving" || saveState === "saved"}
+        className={cn(
+          "flex h-7 items-center gap-1.5 rounded-md border border-border px-2 text-xs transition-colors",
+          saveState === "saved"
+            ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-500"
+            : "text-muted-foreground hover:bg-foreground/8 hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50",
+        )}
+        title="Save (⌘S)"
+      >
+        {saveState === "saving" ? (
+          <Loader2 className="size-3 animate-spin" />
+        ) : saveState === "saved" ? (
+          <Check className="size-3" />
+        ) : (
+          <Save className="size-3" />
+        )}
+        <span>{saveState === "saving" ? "Saving…" : saveState === "saved" ? "Saved" : "Save"}</span>
+      </button>
 
       {/* Zoom controls */}
       <div className="flex items-center gap-0.5 rounded-md border border-border bg-background px-1">
