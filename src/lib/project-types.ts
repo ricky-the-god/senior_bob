@@ -51,6 +51,7 @@ export type Task = {
   size: TaskSize;
   component: string;
   status: TaskStatus;
+  platform: string; // e.g. "Claude Code", "Terminal", "GitHub", "AWS Console"
 };
 
 export type TaskSprint = {

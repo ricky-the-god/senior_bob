@@ -21,17 +21,6 @@ const PRIORITY_STYLES: Record<Task["priority"], string> = {
   low: "bg-slate-500/15 text-slate-400",
 };
 
-// All sizes share the same visual style in v1; use a Record if differentiation is needed later
-const SIZE_STYLE = "bg-violet-500/15 text-violet-400";
-
-const SIZE_LABELS: Record<Task["size"], string> = {
-  xs: "XS · ~1h",
-  s: "S · 2–4h",
-  m: "M · 4–8h",
-  l: "L · 1–2d",
-  xl: "XL · 2–5d",
-};
-
 const STATUS_CYCLE: Record<TaskStatus, TaskStatus> = {
   todo: "in-progress",
   "in-progress": "done",
@@ -59,7 +48,7 @@ type TaskCardProps = {
 
 function TaskCard({ task, onStatusChange }: TaskCardProps) {
   const handleCopy = useCallback(() => {
-    const prompt = `## ${task.title}\n\n${task.description}\n\n> ${task.component} · ${task.priority} priority · ${SIZE_LABELS[task.size]}`;
+    const prompt = task.description;
 
     navigator.clipboard.writeText(prompt).then(
       () => toast.success("Copied to clipboard"),
@@ -89,13 +78,13 @@ function TaskCard({ task, onStatusChange }: TaskCardProps) {
           {task.priority}
         </span>
 
-        {/* Size */}
-        <span className={cn("rounded px-1.5 py-0.5 font-medium text-[11px]", SIZE_STYLE)}>
-          {SIZE_LABELS[task.size]}
-        </span>
-
         {/* Component chip */}
         <span className="rounded bg-foreground/8 px-1.5 py-0.5 text-[11px] text-foreground/60">{task.component}</span>
+
+        {/* Platform chip */}
+        {task.platform && (
+          <span className="rounded bg-indigo-500/10 px-1.5 py-0.5 text-[11px] text-indigo-400">{task.platform}</span>
+        )}
 
         <div className="flex-1" />
 

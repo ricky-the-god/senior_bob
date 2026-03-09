@@ -30,6 +30,7 @@ const TaskSchema = z.object({
   size: z.enum(["xs", "s", "m", "l", "xl"]),
   component: z.string(),
   status: z.literal("todo"),
+  platform: z.string(),
 });
 
 const SprintSchema = z.object({
@@ -47,7 +48,15 @@ const SYSTEM_PROMPT = `You are a senior software architect and engineering manag
 
 IMPORTANT: Generate ONLY Sprint 1 with full tasks (3–6 tasks). For Sprints 2 and 3, return only id, name, and goal with tasks: []. Sprints 2 and 3 are stubs — their tasks will be generated on-demand when the previous sprint is complete.
 
-Sprint IDs must be exactly: "sprint-1", "sprint-2", "sprint-3". Task IDs should be unique strings like "task-{sprint}-{n}". Each Sprint 1 task must reference a specific diagram component, have an actionable title, concise technical description (1-2 sentences), T-shirt size (xs=1h, s=2-4h, m=4-8h, l=1-2d, xl=2-5d), and priority. Sprint names and goals for all 3 sprints should reflect a coherent infrastructure-first progression.`;
+Sprint IDs must be exactly: "sprint-1", "sprint-2", "sprint-3". Task IDs should be unique strings like "task-{sprint}-{n}". Each Sprint 1 task must reference a specific diagram component, have an actionable title, concise technical description (1-2 sentences), T-shirt size (xs=1h, s=2-4h, m=4-8h, l=1-2d, xl=2-5d), and priority. Sprint names and goals for all 3 sprints should reflect a coherent infrastructure-first progression.
+
+For each task, set "platform" to the primary tool needed to execute it. Use one of:
+- "Claude Code" — for any coding, implementation, or refactoring task
+- "Terminal" — for CLI operations, migrations, scripts, package installs
+- "GitHub" — for repo setup, CI/CD config, PR workflows, branch protection
+- "AWS Console" / "Vercel Dashboard" / "Supabase Dashboard" — for cloud infrastructure provisioning
+- "Figma" — for design tasks
+Use the most specific platform. Default to "Claude Code" for general coding tasks.`;
 
 export async function POST(req: Request) {
   // Auth guard — API routes are not covered by middleware

@@ -14,6 +14,7 @@ const TaskSchema = z.object({
   size: z.enum(["xs", "s", "m", "l", "xl"]),
   component: z.string(),
   status: z.literal("todo"),
+  platform: z.string(),
 });
 
 const ExistingSprintSchema = z.object({
@@ -49,7 +50,15 @@ const ResponseSchema = z.object({
 
 const SYSTEM_PROMPT = `You are a senior software architect and engineering manager. You are generating tasks for a specific sprint in a 3-sprint engineering backlog. You will be given the completed previous sprint context and the stub (name + goal) for the sprint you must fill.
 
-Generate exactly 3–6 focused tasks for the requested sprint. Follow the sprint's stated goal. Each task must reference a specific system component, have an actionable title, concise technical description (1-2 sentences), T-shirt size (xs=1h, s=2-4h, m=4-8h, l=1-2d, xl=2-5d), and priority. Task IDs must be unique and follow the pattern "task-{sprint-number}-{n}" (e.g., "task-2-1" for sprint-2). All tasks start with status "todo".`;
+Generate exactly 3–6 focused tasks for the requested sprint. Follow the sprint's stated goal. Each task must reference a specific system component, have an actionable title, concise technical description (1-2 sentences), T-shirt size (xs=1h, s=2-4h, m=4-8h, l=1-2d, xl=2-5d), and priority. Task IDs must be unique and follow the pattern "task-{sprint-number}-{n}" (e.g., "task-2-1" for sprint-2). All tasks start with status "todo".
+
+For each task, set "platform" to the primary tool needed to execute it. Use one of:
+- "Claude Code" — for any coding, implementation, or refactoring task
+- "Terminal" — for CLI operations, migrations, scripts, package installs
+- "GitHub" — for repo setup, CI/CD config, PR workflows, branch protection
+- "AWS Console" / "Vercel Dashboard" / "Supabase Dashboard" — for cloud infrastructure provisioning
+- "Figma" — for design tasks
+Use the most specific platform. Default to "Claude Code" for general coding tasks.`;
 
 export async function POST(req: Request) {
   const supabase = await createClient();
