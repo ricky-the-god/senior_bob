@@ -1,4 +1,4 @@
-import { anthropic } from "@ai-sdk/anthropic";
+import { groq } from "@ai-sdk/groq";
 import { convertToModelMessages, streamText, type UIMessage } from "ai";
 
 import { createClient } from "@/lib/supabase/server";
@@ -58,7 +58,7 @@ export async function POST(req: Request) {
     : SYSTEM_PROMPT;
 
   const result = streamText({
-    model: anthropic("claude-sonnet-4-6"),
+    model: groq("llama-3.3-70b-versatile"),
     system: systemWithContext,
     messages: await convertToModelMessages(body.messages),
   });

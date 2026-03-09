@@ -1,4 +1,4 @@
-import { anthropic } from "@ai-sdk/anthropic";
+import { groq } from "@ai-sdk/groq";
 import { generateObject } from "ai";
 import { z } from "zod";
 
@@ -61,7 +61,7 @@ export async function POST(req: Request) {
     : prompt;
 
   const { object } = await generateObject({
-    model: anthropic("claude-sonnet-4-6"),
+    model: groq("openai/gpt-oss-120b"),
     system: SYSTEM_PROMPT,
     prompt: userMessage,
     schema: DiagramSchema,

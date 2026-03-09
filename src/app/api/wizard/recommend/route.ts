@@ -1,4 +1,4 @@
-import { anthropic } from "@ai-sdk/anthropic";
+import { groq } from "@ai-sdk/groq";
 import { generateObject } from "ai";
 import { z } from "zod";
 
@@ -44,7 +44,7 @@ export async function POST(req: Request) {
   // To use Ollama locally: install ollama-ai-provider, set USE_OLLAMA=true, and swap
   // the model below with: createOllama()("llama3.1")
   const { object } = await generateObject({
-    model: anthropic("claude-haiku-4-5-20251001"),
+    model: groq("openai/gpt-oss-120b"),
     system: SYSTEM_PROMPT,
     prompt: `Project description: ${parse.data.description}`,
     schema: ResponseSchema,
