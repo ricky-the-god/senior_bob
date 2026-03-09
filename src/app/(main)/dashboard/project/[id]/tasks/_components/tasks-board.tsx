@@ -4,7 +4,7 @@ import { useCallback, useState } from "react";
 
 import { useRouter } from "next/navigation";
 
-import { ChevronDown, ChevronRight, Loader2, Network, Sparkles } from "lucide-react";
+import { ChevronDown, ChevronRight, Clipboard, Loader2, Lock, Network, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 
 import { generateAndSaveTasks } from "@/lib/api/tasks";
@@ -52,10 +52,34 @@ const STATUS_LABELS: Record<TaskStatus, string> = {
 
 // ─── Task card ─────────────────────────────────────────────────────────────────
 
-function TaskCard({ task, onStatusChange }: { task: Task; onStatusChange: (id: string, status: TaskStatus) => void }) {
+type TaskCardProps = {
+  task: Task;
+  onStatusChange: (id: string, status: TaskStatus) => void;
+};
+
+function TaskCard({ task, onStatusChange }: TaskCardProps) {
+  const handleCopy = useCallback(() => {
+    const prompt = `## ${task.title}\n\n${task.description}\n\n> ${task.component} · ${task.priority} priority · ${SIZE_LABELS[task.size]}`;
+
+    navigator.clipboard.writeText(prompt).then(
+      () => toast.success("Copied to clipboard"),
+      () => toast.error("Failed to copy"),
+    );
+  }, [task]);
+
   return (
-    <div className="flex flex-col gap-2 rounded-lg border border-border bg-card/60 p-3">
-      <p className="font-medium text-foreground text-sm leading-snug">{task.title}</p>
+    <div className="group flex flex-col gap-2 rounded-lg border border-border bg-card/60 p-3">
+      <div className="flex items-start justify-between gap-2">
+        <p className="font-medium text-foreground text-sm leading-snug">{task.title}</p>
+        <button
+          type="button"
+          onClick={handleCopy}
+          title="Copy as prompt"
+          className="flex-shrink-0 rounded p-0.5 text-muted-foreground opacity-0 transition-opacity hover:bg-foreground/8 hover:text-foreground group-hover:opacity-100"
+        >
+          <Clipboard className="size-3.5" />
+        </button>
+      </div>
       <p className="text-muted-foreground text-xs leading-relaxed">{task.description}</p>
       <div className="flex flex-wrap items-center gap-1.5">
         {/* Priority */}
@@ -93,14 +117,23 @@ function TaskCard({ task, onStatusChange }: { task: Task; onStatusChange: (id: s
 
 // ─── Sprint section ────────────────────────────────────────────────────────────
 
+type SprintSectionProps = {
+  sprint: TaskSprint;
+  onStatusChange: (taskId: string, status: TaskStatus) => void;
+  isPreviousComplete: boolean;
+  onGenerateTasks: () => Promise<void>;
+  generating: boolean;
+};
+
 function SprintSection({
   sprint,
   onStatusChange,
-}: {
-  sprint: TaskSprint;
-  onStatusChange: (taskId: string, status: TaskStatus) => void;
-}) {
+  isPreviousComplete,
+  onGenerateTasks,
+  generating,
+}: SprintSectionProps) {
   const [open, setOpen] = useState(true);
+  const isStub = sprint.tasks.length === 0;
   const doneCount = sprint.tasks.filter((t) => t.status === "done").length;
 
   return (
@@ -118,15 +151,54 @@ function SprintSection({
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
             <span className="font-semibold text-foreground text-sm">{sprint.name}</span>
-            <span className="rounded-full bg-foreground/8 px-2 py-0.5 text-[11px] text-muted-foreground">
-              {doneCount}/{sprint.tasks.length}
-            </span>
+            {isStub ? (
+              <span className="rounded-full bg-foreground/8 px-2 py-0.5 text-[11px] text-muted-foreground/60">
+                {isPreviousComplete ? "Ready" : "Locked"}
+              </span>
+            ) : (
+              <span className="rounded-full bg-foreground/8 px-2 py-0.5 text-[11px] text-muted-foreground">
+                {doneCount}/{sprint.tasks.length}
+              </span>
+            )}
           </div>
           <p className="mt-0.5 truncate text-muted-foreground text-xs leading-relaxed">{sprint.goal}</p>
         </div>
       </button>
 
-      {open && (
+      {open && isStub && (
+        <div className="flex flex-col items-center gap-3 border-border border-t px-4 py-8 text-center">
+          {isPreviousComplete ? (
+            <>
+              <p className="text-muted-foreground text-xs">The previous sprint is complete — ready to plan ahead.</p>
+              <button
+                type="button"
+                onClick={onGenerateTasks}
+                disabled={generating}
+                className="flex items-center gap-2 rounded-lg border border-border bg-foreground/[0.03] px-4 py-2 text-foreground text-sm transition-colors hover:bg-foreground/8 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {generating ? (
+                  <>
+                    <Loader2 className="size-3.5 animate-spin" />
+                    <span>Generating…</span>
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="size-3.5" />
+                    <span>Generate {sprint.name} Tasks</span>
+                  </>
+                )}
+              </button>
+            </>
+          ) : (
+            <>
+              <Lock className="size-4 text-foreground/20" />
+              <p className="text-muted-foreground text-xs">Complete the previous sprint to unlock</p>
+            </>
+          )}
+        </div>
+      )}
+
+      {open && !isStub && (
         <div className="flex flex-col gap-2 border-border border-t p-3">
           {sprint.tasks.map((task) => (
             <TaskCard key={task.id} task={task} onStatusChange={onStatusChange} />
@@ -149,6 +221,7 @@ export function TasksBoard({ projectId, taskSprints: initialSprints, projectMeta
   const router = useRouter();
   const [sprints, setSprints] = useState<TaskSprint[] | null>(initialSprints);
   const [regenerating, setRegenerating] = useState(false);
+  const [generatingSprintId, setGeneratingSprintId] = useState<string | null>(null);
 
   const handleStatusChange = useCallback(
     async (taskId: string, newStatus: TaskStatus) => {
@@ -166,6 +239,41 @@ export function TasksBoard({ projectId, taskSprints: initialSprints, projectMeta
       }
     },
     [sprints, projectId],
+  );
+
+  const handleGenerateSprint = useCallback(
+    async (sprintId: string) => {
+      if (!sprints) return;
+      setGeneratingSprintId(sprintId);
+      try {
+        const res = await fetch("/api/tasks/generate-sprint", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            sprintId,
+            existingSprints: sprints,
+            context: {
+              app_type: projectMeta.app_type ?? undefined,
+              tech_stack: projectMeta.tech_stack ?? undefined,
+              wizard_description: projectMeta.wizard_description ?? undefined,
+              infra: projectMeta.infra ?? undefined,
+              backend: projectMeta.backend ?? undefined,
+            },
+          }),
+        });
+        if (!res.ok) throw new Error("Failed to generate sprint tasks");
+        const data = (await res.json()) as { tasks: Task[] };
+        const updated = sprints.map((s) => (s.id === sprintId ? { ...s, tasks: data.tasks } : s));
+        setSprints(updated);
+        await updateProjectMeta(projectId, { task_sprints: updated });
+        toast.success("Sprint tasks generated");
+      } catch {
+        toast.error("Failed to generate sprint tasks");
+      } finally {
+        setGeneratingSprintId(null);
+      }
+    },
+    [sprints, projectId, projectMeta],
   );
 
   const handleRegenerate = useCallback(async () => {
@@ -241,9 +349,25 @@ export function TasksBoard({ projectId, taskSprints: initialSprints, projectMeta
       </div>
 
       {/* Sprint accordions */}
-      {sprints.map((sprint) => (
-        <SprintSection key={sprint.id} sprint={sprint} onStatusChange={handleStatusChange} />
-      ))}
+      {sprints.map((sprint, index) => {
+        const previousSprint = index > 0 ? sprints[index - 1] : null;
+        const isPreviousComplete =
+          index === 0 ||
+          (previousSprint !== null &&
+            previousSprint.tasks.length > 0 &&
+            previousSprint.tasks.every((t) => t.status === "done"));
+
+        return (
+          <SprintSection
+            key={sprint.id}
+            sprint={sprint}
+            onStatusChange={handleStatusChange}
+            isPreviousComplete={isPreviousComplete}
+            onGenerateTasks={() => handleGenerateSprint(sprint.id)}
+            generating={generatingSprintId === sprint.id}
+          />
+        );
+      })}
     </div>
   );
 }

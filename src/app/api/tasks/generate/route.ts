@@ -43,7 +43,11 @@ const ResponseSchema = z.object({
   sprints: z.array(SprintSchema),
 });
 
-const SYSTEM_PROMPT = `You are a senior software architect and engineering manager. Given a system design diagram (React Flow nodes/edges), decompose it into a 3-sprint engineering backlog. Follow infrastructure-first ordering (infra → core services → integration/polish). Each sprint has 3–6 focused tasks. Each task must reference a specific diagram component, have an actionable title, concise technical description (1-2 sentences), T-shirt size (xs=1h, s=2-4h, m=4-8h, l=1-2d, xl=2-5d), and priority. Sprint IDs should be "sprint-1", "sprint-2", "sprint-3". Task IDs should be unique strings like "task-{sprint}-{n}".`;
+const SYSTEM_PROMPT = `You are a senior software architect and engineering manager. Given a system design diagram (React Flow nodes/edges), decompose it into a 3-sprint engineering backlog following infrastructure-first ordering (infra → core services → integration/polish).
+
+IMPORTANT: Generate ONLY Sprint 1 with full tasks (3–6 tasks). For Sprints 2 and 3, return only id, name, and goal with tasks: []. Sprints 2 and 3 are stubs — their tasks will be generated on-demand when the previous sprint is complete.
+
+Sprint IDs must be exactly: "sprint-1", "sprint-2", "sprint-3". Task IDs should be unique strings like "task-{sprint}-{n}". Each Sprint 1 task must reference a specific diagram component, have an actionable title, concise technical description (1-2 sentences), T-shirt size (xs=1h, s=2-4h, m=4-8h, l=1-2d, xl=2-5d), and priority. Sprint names and goals for all 3 sprints should reflect a coherent infrastructure-first progression.`;
 
 export async function POST(req: Request) {
   // Auth guard — API routes are not covered by middleware
@@ -79,7 +83,7 @@ ${
     : ""
 }
 
-Decompose this system design into a 3-sprint engineering backlog.`;
+Decompose this system design into a 3-sprint engineering backlog. Return Sprint 1 with 3–6 full tasks, and Sprints 2 and 3 as stubs (tasks: []).`;
 
   const { object } = await generateObject({
     model: groq("openai/gpt-oss-120b"),
