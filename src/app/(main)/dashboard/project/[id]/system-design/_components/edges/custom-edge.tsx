@@ -54,6 +54,7 @@ export function CustomEdge({
     targetX,
     targetY,
     targetPosition,
+    curvature: 0.1,
   });
 
   const onDelete = useCallback(
@@ -96,16 +97,12 @@ export function CustomEdge({
         }}
       />
       <EdgeLabelRenderer>
-        <button
-          type="button"
+        {/* biome-ignore lint/a11y/noStaticElementInteractions: canvas edge label — keyboard nav not applicable in React Flow canvas */}
+        <div
           style={{
             position: "absolute",
             transform: `translate(-50%, -50%) translate(${labelX}px,${labelY}px)`,
             pointerEvents: "all",
-            background: "none",
-            border: "none",
-            padding: 0,
-            cursor: "default",
           }}
           className="nodrag nopan group"
           onDoubleClick={startEdit}
@@ -160,7 +157,7 @@ export function CustomEdge({
               </div>
             </div>
           )}
-        </button>
+        </div>
       </EdgeLabelRenderer>
     </>
   );
