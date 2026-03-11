@@ -23,10 +23,14 @@ const NodeSchema = z.object({
   data: z.object({ label: z.string(), sublabel: z.string().optional() }),
 });
 
+const HandleSchema = z.enum(["top", "bottom", "left", "right"]);
+
 const EdgeSchema = z.object({
   id: z.string(),
   source: z.string(),
   target: z.string(),
+  sourceHandle: HandleSchema.optional(),
+  targetHandle: HandleSchema.optional(),
 });
 
 const DiagramSchema = z.object({
@@ -41,7 +45,15 @@ Layout guidelines:
 - Clients at top (y: 0), gateways below (y: 120), services in the middle (y: 260), databases/caches at bottom (y: 400)
 - Space nodes horizontally with x intervals of 200px
 - Edge ids must be "e-{source}-{target}"
-- Only output NEW nodes/edges that should be added; do not repeat existing ones.`;
+- Only output NEW nodes/edges that should be added; do not repeat existing ones.
+
+Edge handle selection — pick sourceHandle and targetHandle based on relative node positions:
+- Source ABOVE target (source.y < target.y): sourceHandle="bottom", targetHandle="top"
+- Source BELOW target (source.y > target.y): sourceHandle="top", targetHandle="bottom"
+- Source LEFT of target (same y, source.x < target.x): sourceHandle="right", targetHandle="left"
+- Source RIGHT of target (same y, source.x > target.x): sourceHandle="left", targetHandle="right"
+- Diagonal (different x AND y): prefer the axis with the greater distance; use bottom/top for vertical-dominant, right/left for horizontal-dominant.
+Always set both sourceHandle and targetHandle. Never leave them empty.`;
 
 export async function POST(req: Request) {
   // Auth guard — API routes are not covered by middleware
