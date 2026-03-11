@@ -30,15 +30,15 @@ export function CustomEdge({
   targetY,
   sourcePosition: rfSourcePosition,
   targetPosition: rfTargetPosition,
-  sourceHandle,
-  targetHandle,
+  sourceHandleId,
+  targetHandleId,
   data,
   selected,
   markerEnd,
   style,
 }: EdgeProps) {
-  const sourcePosition = handleIdToPosition(sourceHandle) ?? rfSourcePosition;
-  const targetPosition = handleIdToPosition(targetHandle) ?? rfTargetPosition;
+  const sourcePosition = handleIdToPosition(sourceHandleId) ?? rfSourcePosition;
+  const targetPosition = handleIdToPosition(targetHandleId) ?? rfTargetPosition;
   const { deleteElements, setEdges } = useReactFlow();
   const [editing, setEditing] = useState(false);
   // Narrow `data.label` safely rather than casting. React Flow `data` is typed

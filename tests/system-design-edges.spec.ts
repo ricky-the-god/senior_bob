@@ -30,35 +30,49 @@ test.describe("System Design — Edge connections", () => {
     }
     await page.screenshot({ path: `${SCREENSHOT_DIR}/sd-03-canvas-open.png`, fullPage: true });
 
-    // ── Drag two nodes onto the canvas ────────────────────────────────────────
+    // ── Drag two fresh nodes onto the canvas ──────────────────────────────────
+    // Drop them into a predictable area within the visible canvas viewport.
     const canvas = page.locator(".react-flow__renderer").first();
     const canvasBox = await canvas.boundingBox();
     if (!canvasBox) throw new Error("Canvas not found");
 
-    const serviceItem = page.getByText("Service").first();
+    // Use explicit screen-space positions that land inside the visible viewport.
+    const dropX1 = canvasBox.x + canvasBox.width * 0.3;
+    const dropY = canvasBox.y + canvasBox.height * 0.5;
+    const dropX2 = canvasBox.x + canvasBox.width * 0.7;
+
+    const serviceItem = page
+      .locator("[aria-label*='Drag to add Service'], [title*='Service']")
+      .or(page.getByText("Service").locator(".."))
+      .first();
     if (await serviceItem.isVisible({ timeout: 3000 })) {
       await serviceItem.dragTo(canvas, {
-        targetPosition: { x: canvasBox.width * 0.35, y: canvasBox.height * 0.4 },
+        targetPosition: { x: canvasBox.width * 0.3, y: canvasBox.height * 0.5 },
       });
       await page.waitForTimeout(400);
     }
 
-    const dbItem = page.getByText("Database").first();
+    const dbItem = page
+      .locator("[aria-label*='Drag to add Database'], [title*='Database']")
+      .or(page.getByText("Database").locator(".."))
+      .first();
     if (await dbItem.isVisible({ timeout: 2000 })) {
       await dbItem.dragTo(canvas, {
-        targetPosition: { x: canvasBox.width * 0.65, y: canvasBox.height * 0.4 },
+        targetPosition: { x: canvasBox.width * 0.7, y: canvasBox.height * 0.5 },
       });
       await page.waitForTimeout(400);
     }
 
-    await page.screenshot({ path: `${SCREENSHOT_DIR}/sd-05-two-nodes.png`, fullPage: true });
-
-    // ── Fit view ──────────────────────────────────────────────────────────────
-    const fitBtn = page.locator("[title='Fit view'], button:has-text('Fit'), .react-flow__controls button").first();
-    if (await fitBtn.isVisible({ timeout: 2000 }).catch(() => false)) {
+    // ── Fit view to bring all nodes (including newly dropped ones) into viewport
+    const fitBtn = page
+      .locator("button[title='Fit view']")
+      .or(page.locator("button").filter({ hasText: /^Fit$/ }))
+      .first();
+    if (await fitBtn.isVisible({ timeout: 2000 })) {
       await fitBtn.click();
-      await page.waitForTimeout(500);
+      await page.waitForTimeout(600);
     }
+    await page.screenshot({ path: `${SCREENSHOT_DIR}/sd-05-two-nodes.png`, fullPage: true });
 
     // ── Count edges BEFORE connecting ─────────────────────────────────────────
     const edgesBefore = await page.locator(".react-flow__edge").count();
@@ -72,12 +86,14 @@ test.describe("System Design — Edge connections", () => {
     await page.screenshot({ path: `${SCREENSHOT_DIR}/sd-06-connect-mode-active.png`, fullPage: true });
 
     // ── Click-to-connect: source handle → target handle ───────────────────────
-    const nodes = page.locator(".react-flow__node");
-    const nodeCount = await nodes.count();
+    // Pick the last two nodes in the DOM — the ones we just dragged are appended
+    // last, so they are the freshest and guaranteed to have no edge between them.
+    const allNodes = page.locator(".react-flow__node");
+    const nodeCount = await allNodes.count();
 
     if (nodeCount >= 2) {
-      const firstNode = nodes.first();
-      const secondNode = nodes.nth(1);
+      const firstNode = allNodes.nth(nodeCount - 2);
+      const secondNode = allNodes.nth(nodeCount - 1);
 
       // Hover the first node so handles become visible
       const firstNodeBox = await firstNode.boundingBox();
@@ -86,14 +102,14 @@ test.describe("System Design — Edge connections", () => {
       await page.waitForTimeout(300);
       await page.screenshot({ path: `${SCREENSHOT_DIR}/sd-07-hover-source-node.png`, fullPage: true });
 
-      // Click the bottom (source) handle on the first node
+      // Click the bottom (source) handle — index 0 after handle reorder
+      // base-node.tsx HANDLE_POSITIONS: [bottom, top, left, right]
       const firstNodeHandles = firstNode.locator(".react-flow__handle");
       const handleCount = await firstNodeHandles.count();
       expect(handleCount).toBeGreaterThan(0);
 
-      // Prefer the bottom source handle (index 1 in base-node order: top=target, bottom=source)
-      const sourceHandleIdx = handleCount > 1 ? 1 : 0;
-      const sourceHandle = firstNodeHandles.nth(sourceHandleIdx);
+      // bottom = index 0 (first) per the HANDLE_POSITIONS order in base-node.tsx
+      const sourceHandle = firstNodeHandles.nth(0);
       const sourceBox = await sourceHandle.boundingBox();
       if (!sourceBox) throw new Error("Source handle has no bounding box");
 
@@ -108,9 +124,10 @@ test.describe("System Design — Edge connections", () => {
       await page.waitForTimeout(300);
       await page.screenshot({ path: `${SCREENSHOT_DIR}/sd-09-magnetic-snap.png`, fullPage: true });
 
-      // Click the top (target) handle on the second node
+      // Click the top (target) handle on the second node — index 1 after reorder
+      // base-node.tsx HANDLE_POSITIONS: [bottom, top, left, right]
       const secondNodeHandles = secondNode.locator(".react-flow__handle");
-      const targetHandle = secondNodeHandles.first(); // top = target handle
+      const targetHandle = secondNodeHandles.nth(1); // top = index 1
       const targetBox = await targetHandle.boundingBox();
       if (!targetBox) throw new Error("Target handle has no bounding box");
 
@@ -128,7 +145,7 @@ test.describe("System Design — Edge connections", () => {
     const firstEdgePath = page.locator(".react-flow__edge path").first();
     if (await firstEdgePath.isVisible({ timeout: 2000 })) {
       const d = await firstEdgePath.getAttribute("d");
-      expect(d).toMatch(/C\s/); // bezier curve command
+      expect(d).toMatch(/C[\s\d-]/); // bezier curve command (C may be followed by digits without space)
     }
   });
 });

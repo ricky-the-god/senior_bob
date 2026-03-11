@@ -93,9 +93,12 @@ export function BaseNode({ id, icon: Icon, label, sublabel, selected, dashed, ac
     setPendingConnection(null);
   }
 
+  // "bottom" is first so React Flow's fallback (first source handle) produces a
+  // bottom-to-top edge when no explicit sourceHandle is set — correct for
+  // top-down architecture diagrams.
   const HANDLE_POSITIONS = [
-    { id: "top", position: Position.Top },
     { id: "bottom", position: Position.Bottom },
+    { id: "top", position: Position.Top },
     { id: "left", position: Position.Left },
     { id: "right", position: Position.Right },
   ] as const;

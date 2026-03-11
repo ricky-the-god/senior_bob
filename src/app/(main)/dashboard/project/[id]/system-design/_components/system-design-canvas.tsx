@@ -41,6 +41,27 @@ type DiagramData = { nodes: Node[]; edges: Edge[] };
 
 const DEFAULT_MARKER_END = { type: MarkerType.ArrowClosed } as const;
 
+type HandleId = "top" | "bottom" | "left" | "right";
+
+/**
+ * Deterministically pick the best source/target handles from the relative
+ * positions of two nodes. Mirrors the server-side logic in
+ * /api/diagram-ai/generate/route.ts so that edges from the streaming chat
+ * panel (which has no server-side handle resolution) are also routed
+ * correctly.
+ */
+function resolveEdgeHandles(
+  src: { x: number; y: number },
+  tgt: { x: number; y: number },
+): { sourceHandle: HandleId; targetHandle: HandleId } {
+  const dx = tgt.x - src.x;
+  const dy = tgt.y - src.y;
+  if (Math.abs(dy) >= Math.abs(dx)) {
+    return dy >= 0 ? { sourceHandle: "bottom", targetHandle: "top" } : { sourceHandle: "top", targetHandle: "bottom" };
+  }
+  return dx >= 0 ? { sourceHandle: "right", targetHandle: "left" } : { sourceHandle: "left", targetHandle: "right" };
+}
+
 /** Ensure every edge has the custom renderer + arrow marker when loaded or created. */
 function asCustomEdge(edge: Edge): Edge {
   return {
@@ -301,15 +322,32 @@ function CanvasInner({ projectId, projectName, initialData, projectMeta }: Props
         return [...nds, ...toAdd];
       });
       setEdges((eds) => {
+        // Build a position map from existing + incoming nodes so handles can
+        // be resolved for edges that the LLM returned without them (e.g. from
+        // the streaming chat panel which has no server-side resolveHandles).
+        const positionMap = new Map<string, { x: number; y: number }>(
+          [...nodes, ...newNodes].map((n) => [n.id, n.position]),
+        );
+
         const existingIds = new Set(eds.map((e) => e.id));
-        const toAdd = newEdges.filter((e) => !existingIds.has(e.id)).map(asCustomEdge);
+        const toAdd = newEdges
+          .filter((e) => !existingIds.has(e.id))
+          .map((e) => {
+            // If the server already resolved handles (generate route), keep them.
+            // If not (streaming chat route), resolve client-side from positions.
+            if (e.sourceHandle && e.targetHandle) return asCustomEdge(e);
+            const src = positionMap.get(e.source);
+            const tgt = positionMap.get(e.target);
+            if (!src || !tgt) return asCustomEdge(e);
+            return asCustomEdge({ ...e, ...resolveEdgeHandles(src, tgt) });
+          });
         return [...eds, ...toAdd];
       });
       toast.success("Diagram updated");
       // S4: setTimeout(0) — defer fitView until after React has committed new nodes
       setTimeout(() => fitView({ padding: 0.2, duration: 400 }), 0);
     },
-    [setNodes, setEdges, fitView],
+    [nodes, setNodes, setEdges, fitView],
   );
 
   // ── Generate Tasks ────────────────────────────────────────────────────────
