@@ -73,10 +73,12 @@ export async function updateProjectName(id: string, name: string) {
 }
 
 export async function updateProjectMeta(id: string, patch: Partial<ProjectMeta>) {
+  // Validate id before authenticating — fail fast on malformed input
+  const { id: pid } = z.object({ id: z.string().uuid() }).parse({ id });
   const { supabase, user } = await getAuthenticatedUser();
 
   // Fetch current description to merge patch on top
-  const { data } = await supabase.from("projects").select("description").eq("id", id).eq("owner_id", user.id).single();
+  const { data } = await supabase.from("projects").select("description").eq("id", pid).eq("owner_id", user.id).single();
 
   let current: Partial<ProjectMeta> = {};
   try {
@@ -89,7 +91,7 @@ export async function updateProjectMeta(id: string, patch: Partial<ProjectMeta>)
   const { error } = await supabase
     .from("projects")
     .update({ description: JSON.stringify(merged) })
-    .eq("id", id)
+    .eq("id", pid)
     .eq("owner_id", user.id);
   if (error) throw new Error(error.message);
 }

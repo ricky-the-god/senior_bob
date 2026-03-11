@@ -4,8 +4,10 @@ import {
   addEdge,
   Background,
   BackgroundVariant,
+  ConnectionMode,
   Controls,
   type Edge,
+  MarkerType,
   MiniMap,
   type Node,
   ReactFlow,
@@ -16,7 +18,7 @@ import {
   useViewport,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { useRouter } from "next/navigation";
 
@@ -29,11 +31,24 @@ import { saveDiagram } from "@/server/diagrams";
 
 import { AiCommandPalette } from "./ai-command-palette";
 import { AiPanel } from "./ai-panel";
+import { CanvasContext, type CanvasTool, type PendingConnection } from "./canvas-context";
 import { CanvasToolbar } from "./canvas-toolbar";
+import { edgeTypes } from "./edges";
 import { NodePalette } from "./node-palette";
 import { type NodeTypeId, nodeTypes } from "./nodes";
 
 type DiagramData = { nodes: Node[]; edges: Edge[] };
+
+const DEFAULT_MARKER_END = { type: MarkerType.ArrowClosed } as const;
+
+/** Ensure every edge has the custom renderer + arrow marker when loaded or created. */
+function asCustomEdge(edge: Edge): Edge {
+  return {
+    ...edge,
+    type: edge.type ?? "custom",
+    markerEnd: edge.markerEnd ?? DEFAULT_MARKER_END,
+  };
+}
 
 type Props = {
   projectId: string;
@@ -42,23 +57,90 @@ type Props = {
   projectMeta?: Pick<ProjectMeta, "app_type" | "tech_stack" | "wizard_description" | "infra" | "backend">;
 };
 
+type GhostEdgeProps = {
+  source: { x: number; y: number };
+  target: { x: number; y: number };
+  viewport: { x: number; y: number; zoom: number };
+  isSnapping: boolean;
+};
+
+/** SVG ghost line that follows the cursor during click-to-connect. */
+function GhostEdgeLine({ source, target, viewport, isSnapping }: GhostEdgeProps) {
+  const toContainer = (p: { x: number; y: number }) => ({
+    x: p.x * viewport.zoom + viewport.x,
+    y: p.y * viewport.zoom + viewport.y,
+  });
+  const s = toContainer(source);
+  const t = toContainer(target);
+  const color = isSnapping ? "#3b82f6" : "#94a3b8";
+
+  return (
+    <svg
+      aria-hidden="true"
+      style={{
+        position: "absolute",
+        inset: 0,
+        width: "100%",
+        height: "100%",
+        pointerEvents: "none",
+        zIndex: 10,
+        overflow: "visible",
+      }}
+    >
+      <defs>
+        <marker id="ghost-arrow" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto">
+          <path d="M0,0 L0,6 L8,3 z" fill={color} />
+        </marker>
+      </defs>
+      <line
+        x1={s.x}
+        y1={s.y}
+        x2={t.x}
+        y2={t.y}
+        stroke={color}
+        strokeWidth={isSnapping ? 2 : 1.5}
+        strokeDasharray="6 3"
+        markerEnd="url(#ghost-arrow)"
+        style={{ opacity: 0.85 }}
+      />
+      {isSnapping && (
+        <circle cx={t.x} cy={t.y} r={7} fill="none" stroke="#3b82f6" strokeWidth={2} style={{ opacity: 0.9 }} />
+      )}
+    </svg>
+  );
+}
+
 function CanvasInner({ projectId, projectName, initialData, projectMeta }: Props) {
   const [nodes, setNodes, onNodesChange] = useNodesState<Node>(initialData?.nodes ?? []);
-  const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>(initialData?.edges ?? []);
+  const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>((initialData?.edges ?? []).map(asCustomEdge));
+  const [activeTool, setActiveTool] = useState<CanvasTool>("select");
   const [aiPanelOpen, setAiPanelOpen] = useState(false);
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
   const [saveState, setSaveState] = useState<"idle" | "saving" | "saved">("idle");
   const [isDirty, setIsDirty] = useState(false);
   const [isCanvasVisible, setIsCanvasVisible] = useState(!!initialData);
   const [generatingTasks, setGeneratingTasks] = useState(false);
+  const [pendingConnection, setPendingConnection] = useState<PendingConnection | null>(null);
+  const [mouseFlowPos, setMouseFlowPos] = useState({ x: 0, y: 0 });
+  const [snapTargetNodeId, setSnapTargetNodeId] = useState<string | null>(null);
+  const [snapHandleId, setSnapHandleId] = useState<string | null>(null);
+  const [snapPos, setSnapPos] = useState<{ x: number; y: number } | null>(null);
   const router = useRouter();
 
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Skip the initial render so that loading initialData doesn't mark the canvas dirty
   const isMounted = useRef(false);
 
+  // Stable context value — only changes when the referenced state values change.
+  // Without useMemo this object is a new reference every render, forcing all
+  // context consumers (BaseNode, NodePalette) to re-render unnecessarily.
+  const canvasContextValue = useMemo(
+    () => ({ activeTool, setActiveTool, pendingConnection, setPendingConnection, snapTargetNodeId, snapHandleId }),
+    [activeTool, pendingConnection, snapTargetNodeId, snapHandleId],
+  );
+
   // S3: useViewport() is reactive — no getViewport() in render body
-  const { zoom } = useViewport();
+  const { zoom, x: vpX, y: vpY } = useViewport();
   const { fitView, zoomIn, zoomOut, screenToFlowPosition } = useReactFlow();
 
   // ── Track dirty state — skip initial mount so loading data doesn't trigger ─
@@ -105,9 +187,17 @@ function CanvasInner({ projectId, projectName, initialData, projectMeta }: Props
     doSave(nodes, edges);
   }, [nodes, edges, isDirty, doSave]);
 
-  // ── Keyboard shortcuts (⌘K = AI palette, ⌘S = save) ─────────────────────
+  // ── Keyboard shortcuts (⌘K = AI palette, ⌘S = save, Escape = select tool) ──
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") {
+        setActiveTool("select");
+        setPendingConnection(null);
+        setSnapTargetNodeId(null);
+        setSnapHandleId(null);
+        setSnapPos(null);
+        return;
+      }
       if (!(e.metaKey || e.ctrlKey)) return;
       if (e.key === "k") {
         e.preventDefault();
@@ -125,9 +215,56 @@ function CanvasInner({ projectId, projectName, initialData, projectMeta }: Props
   // ── Edge connection ──────────────────────────────────────────────────────
   const onConnect = useCallback(
     (params: Parameters<typeof addEdge>[0]) => {
-      setEdges((eds) => addEdge(params, eds));
+      setEdges((eds) => addEdge(asCustomEdge({ ...params, id: crypto.randomUUID() } as Edge), eds));
+      setPendingConnection(null);
     },
     [setEdges],
+  );
+
+  // ── Cancel pending click-to-connect on pane click ────────────────────────
+  const onPaneClick = useCallback(() => {
+    setPendingConnection(null);
+    setSnapTargetNodeId(null);
+    setSnapHandleId(null);
+    setSnapPos(null);
+  }, []);
+
+  // ── Mouse tracking for ghost edge + magnetic snapping ─────────────────────
+  const onCanvasMouseMove = useCallback(
+    (e: React.MouseEvent) => {
+      if (!pendingConnection) return;
+      const pos = screenToFlowPosition({ x: e.clientX, y: e.clientY });
+      setMouseFlowPos(pos);
+
+      // Magnetic snapping: find the closest handle on a non-source node (50px screen threshold)
+      const SNAP_PX = 50;
+      let closest: { x: number; y: number; nodeId: string; handleId: string } | null = null;
+      let closestDist = SNAP_PX;
+
+      for (const node of nodes) {
+        if (node.id === pendingConnection.sourceNodeId) continue;
+        const w = (node.measured?.width as number | undefined) ?? 140;
+        const h = (node.measured?.height as number | undefined) ?? 56;
+        const handlePositions = [
+          { id: "top", x: node.position.x + w / 2, y: node.position.y },
+          { id: "bottom", x: node.position.x + w / 2, y: node.position.y + h },
+          { id: "left", x: node.position.x, y: node.position.y + h / 2 },
+          { id: "right", x: node.position.x + w, y: node.position.y + h / 2 },
+        ];
+        for (const hp of handlePositions) {
+          // Convert flow-space distance to screen-space pixels
+          const screenDist = Math.hypot((pos.x - hp.x) * zoom, (pos.y - hp.y) * zoom);
+          if (screenDist < closestDist) {
+            closestDist = screenDist;
+            closest = { x: hp.x, y: hp.y, nodeId: node.id, handleId: hp.id };
+          }
+        }
+      }
+      setSnapTargetNodeId(closest?.nodeId ?? null);
+      setSnapHandleId(closest?.handleId ?? null);
+      setSnapPos(closest ?? null);
+    },
+    [pendingConnection, nodes, zoom, screenToFlowPosition],
   );
 
   // ── Drag-to-add from NodePalette ─────────────────────────────────────────
@@ -165,7 +302,7 @@ function CanvasInner({ projectId, projectName, initialData, projectMeta }: Props
       });
       setEdges((eds) => {
         const existingIds = new Set(eds.map((e) => e.id));
-        const toAdd = newEdges.filter((e) => !existingIds.has(e.id));
+        const toAdd = newEdges.filter((e) => !existingIds.has(e.id)).map(asCustomEdge);
         return [...eds, ...toAdd];
       });
       toast.success("Diagram updated");
@@ -219,67 +356,88 @@ function CanvasInner({ projectId, projectName, initialData, projectMeta }: Props
   }
 
   return (
-    <div className="flex flex-1 flex-col overflow-hidden">
-      <CanvasToolbar
-        title={projectName}
-        saveState={saveState}
-        zoom={zoom}
-        onFitView={() => fitView({ padding: 0.2, duration: 300 })}
-        onZoomIn={() => zoomIn({ duration: 200 })}
-        onZoomOut={() => zoomOut({ duration: 200 })}
-        onOpenCommandPalette={() => setCommandPaletteOpen(true)}
-        onToggleAiPanel={() => setAiPanelOpen((v) => !v)}
-        aiPanelOpen={aiPanelOpen}
-        onSave={handleSave}
-        isDirty={isDirty}
-        onGenerateTasks={handleGenerateTasks}
-        generatingTasks={generatingTasks}
-      />
+    <CanvasContext.Provider value={canvasContextValue}>
+      <div className="flex flex-1 flex-col overflow-hidden">
+        <CanvasToolbar
+          title={projectName}
+          saveState={saveState}
+          zoom={zoom}
+          onFitView={() => fitView({ padding: 0.2, duration: 300 })}
+          onZoomIn={() => zoomIn({ duration: 200 })}
+          onZoomOut={() => zoomOut({ duration: 200 })}
+          onOpenCommandPalette={() => setCommandPaletteOpen(true)}
+          onToggleAiPanel={() => setAiPanelOpen((v) => !v)}
+          aiPanelOpen={aiPanelOpen}
+          onSave={handleSave}
+          isDirty={isDirty}
+          onGenerateTasks={handleGenerateTasks}
+          generatingTasks={generatingTasks}
+        />
 
-      <div className="flex flex-1 overflow-hidden">
-        <NodePalette />
+        <div className="flex flex-1 overflow-hidden">
+          <NodePalette />
 
-        {/* biome-ignore lint/a11y/noStaticElementInteractions: div is an HTML5 drop target; keyboard alternative is the AI palette */}
-        <div className="flex-1 bg-background" onDragOver={onDragOver} onDrop={onDrop}>
-          <ReactFlow
-            nodes={nodes}
-            edges={edges}
-            nodeTypes={nodeTypes}
-            onNodesChange={onNodesChange}
-            onEdgesChange={onEdgesChange}
-            onConnect={onConnect}
-            fitView={!initialData}
-            defaultEdgeOptions={{
-              style: { stroke: "hsl(var(--border))", strokeWidth: 1.5 },
-            }}
-            proOptions={{ hideAttribution: true }}
+          {/* biome-ignore lint/a11y/noStaticElementInteractions: div is an HTML5 drop target; keyboard alternative is the AI palette */}
+          <div
+            className="relative flex-1 bg-background"
+            onDragOver={onDragOver}
+            onDrop={onDrop}
+            onMouseMove={onCanvasMouseMove}
           >
-            <Background variant={BackgroundVariant.Dots} gap={20} size={1} color="hsl(var(--border))" />
-            <Controls
-              className="[&>button]:border-border [&>button]:bg-card [&>button]:text-foreground/60 [&>button]:hover:bg-foreground/8"
-              showInteractive={false}
-            />
-            <MiniMap
-              className="!rounded-xl !border !border-border !bg-card"
-              nodeColor="hsl(var(--foreground) / 0.15)"
-              maskColor="hsl(var(--background) / 0.7)"
-            />
-          </ReactFlow>
+            <ReactFlow
+              nodes={nodes}
+              edges={edges}
+              nodeTypes={nodeTypes}
+              edgeTypes={edgeTypes}
+              onNodesChange={onNodesChange}
+              onEdgesChange={onEdgesChange}
+              onConnect={onConnect}
+              onPaneClick={onPaneClick}
+              fitView={!initialData}
+              defaultEdgeOptions={{
+                type: "custom",
+                markerEnd: DEFAULT_MARKER_END,
+                style: { stroke: "#64748b", strokeWidth: 1.5 },
+              }}
+              connectionMode={ConnectionMode.Loose}
+              proOptions={{ hideAttribution: true }}
+            >
+              <Background variant={BackgroundVariant.Dots} gap={20} size={1} color="hsl(var(--border))" />
+              <Controls
+                className="[&>button]:border-border [&>button]:bg-card [&>button]:text-foreground/60 [&>button]:hover:bg-foreground/8"
+                showInteractive={false}
+              />
+              <MiniMap
+                className="!rounded-xl !border !border-border !bg-card"
+                nodeColor="hsl(var(--foreground) / 0.15)"
+                maskColor="hsl(var(--background) / 0.7)"
+              />
+            </ReactFlow>
+
+            {pendingConnection && (
+              <GhostEdgeLine
+                source={{ x: pendingConnection.x, y: pendingConnection.y }}
+                target={snapPos ?? mouseFlowPos}
+                viewport={{ x: vpX, y: vpY, zoom }}
+                isSnapping={!!snapPos}
+              />
+            )}
+          </div>
+
+          {aiPanelOpen && (
+            <AiPanel projectId={projectId} nodes={nodes} edges={edges} onApplyDiagram={applyDiagramUpdate} />
+          )}
         </div>
 
-        {aiPanelOpen && (
-          <AiPanel projectId={projectId} nodes={nodes} edges={edges} onApplyDiagram={applyDiagramUpdate} />
-        )}
+        <AiCommandPalette
+          open={commandPaletteOpen}
+          onClose={() => setCommandPaletteOpen(false)}
+          onApplyDiagram={applyDiagramUpdate}
+          currentNodes={nodes}
+          currentEdges={edges}
+        />
       </div>
-
-      <AiCommandPalette
-        open={commandPaletteOpen}
-        onClose={() => setCommandPaletteOpen(false)}
-        onApplyDiagram={applyDiagramUpdate}
-        currentNodes={nodes}
-        currentEdges={edges}
-      />
-    </div>
+    </CanvasContext.Provider>
   );
 }
 

@@ -2,11 +2,13 @@
 
 import { useEffect, useRef, useState } from "react";
 
-import { Handle, NodeToolbar, Position, useReactFlow } from "@xyflow/react";
+import { addEdge, Handle, MarkerType, NodeToolbar, Position, useReactFlow } from "@xyflow/react";
 import type { LucideIcon } from "lucide-react";
 import { Pencil, Trash2 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
+
+import { useCanvasTool } from "../canvas-context";
 
 type BaseNodeProps = {
   id: string;
@@ -19,7 +21,12 @@ type BaseNodeProps = {
 };
 
 export function BaseNode({ id, icon: Icon, label, sublabel, selected, dashed, accentColor }: BaseNodeProps) {
-  const { deleteElements, setNodes } = useReactFlow();
+  const { deleteElements, setNodes, setEdges, screenToFlowPosition } = useReactFlow();
+  const { activeTool, pendingConnection, setPendingConnection, snapTargetNodeId, snapHandleId } = useCanvasTool();
+  const connectMode = activeTool === "connect";
+  const isConnecting = !!pendingConnection;
+  const isPendingSource = pendingConnection?.sourceNodeId === id;
+  const isSnapTarget = snapTargetNodeId === id;
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(label);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -53,6 +60,46 @@ export function BaseNode({ id, icon: Icon, label, sublabel, selected, dashed, ac
     deleteElements({ nodes: [{ id }] });
   }
 
+  function onHandleClick(e: React.MouseEvent, handleId: string) {
+    e.stopPropagation();
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    const flowPos = screenToFlowPosition({
+      x: rect.left + rect.width / 2,
+      y: rect.top + rect.height / 2,
+    });
+
+    if (!pendingConnection) {
+      setPendingConnection({ sourceNodeId: id, sourceHandleId: handleId, x: flowPos.x, y: flowPos.y });
+      return;
+    }
+    if (pendingConnection.sourceNodeId === id) return; // clicked same node — ignore
+
+    // Complete the connection
+    setEdges((eds) =>
+      addEdge(
+        {
+          id: crypto.randomUUID(),
+          source: pendingConnection.sourceNodeId,
+          sourceHandle: pendingConnection.sourceHandleId,
+          target: id,
+          targetHandle: handleId,
+          type: "custom",
+          markerEnd: { type: MarkerType.ArrowClosed },
+          style: { stroke: "#64748b", strokeWidth: 1.5 },
+        },
+        eds,
+      ),
+    );
+    setPendingConnection(null);
+  }
+
+  const HANDLE_POSITIONS = [
+    { id: "top", position: Position.Top },
+    { id: "bottom", position: Position.Bottom },
+    { id: "left", position: Position.Left },
+    { id: "right", position: Position.Right },
+  ] as const;
+
   return (
     <>
       {/* Floating toolbar — only when selected */}
@@ -81,35 +128,34 @@ export function BaseNode({ id, icon: Icon, label, sublabel, selected, dashed, ac
       {/* biome-ignore lint/a11y/noStaticElementInteractions: canvas node — double-click to rename is the UX; keyboard alternative is the toolbar pencil button */}
       <div
         className={cn(
-          "relative min-w-[140px] cursor-default rounded-xl border border-border bg-card px-4 py-3 transition-all",
+          "group relative min-w-[140px] cursor-default rounded-xl border border-border bg-card px-4 py-3 transition-all",
           dashed && "border-dashed",
           selected && "border-blue-500/30 ring-2 ring-blue-500/50",
+          connectMode && "cursor-crosshair",
+          isPendingSource && "border-blue-500/60 ring-2 ring-blue-500/40 ring-offset-1 ring-offset-background",
+          isConnecting && !isPendingSource && "cursor-crosshair",
         )}
         onDoubleClick={startEdit}
       >
-        {/* Handles — appear on hover via CSS */}
-        <Handle
-          type="target"
-          position={Position.Top}
-          className="!bg-blue-500 !border-blue-400 !w-2 !h-2 opacity-0 transition-opacity group-hover:opacity-100"
-        />
-        <Handle
-          type="source"
-          position={Position.Bottom}
-          className="!bg-blue-500 !border-blue-400 !w-2 !h-2 opacity-0 transition-opacity group-hover:opacity-100"
-        />
-        <Handle
-          type="source"
-          position={Position.Left}
-          id="left"
-          className="!bg-blue-500 !border-blue-400 !w-2 !h-2 opacity-0 transition-opacity group-hover:opacity-100"
-        />
-        <Handle
-          type="source"
-          position={Position.Right}
-          id="right"
-          className="!bg-blue-500 !border-blue-400 !w-2 !h-2 opacity-0 transition-opacity group-hover:opacity-100"
-        />
+        {/* Handles — always visible in connect mode or while connecting, appear on hover otherwise */}
+        {HANDLE_POSITIONS.map(({ id: hId, position }) => {
+          const isThisHandleSnap = isSnapTarget && snapHandleId === hId;
+          const cls = cn(
+            "!bg-blue-500 !border-blue-400 !w-2.5 !h-2.5 transition-all duration-150",
+            connectMode || isConnecting ? "!opacity-100" : "!opacity-0 group-hover:!opacity-100",
+            isThisHandleSnap && "!bg-blue-400 !w-3.5 !h-3.5 !shadow-[0_0_10px_3px_rgba(59,130,246,0.7)]",
+          );
+          return (
+            <Handle
+              key={hId}
+              type="source"
+              position={position}
+              id={hId}
+              className={cls}
+              onClick={(e) => onHandleClick(e, hId)}
+            />
+          );
+        })}
 
         <div className="flex items-center gap-2">
           <div
@@ -129,7 +175,6 @@ export function BaseNode({ id, icon: Icon, label, sublabel, selected, dashed, ac
                 onBlur={commitEdit}
                 onKeyDown={handleKeyDown}
                 className="w-full border-blue-500/50 border-b bg-transparent font-medium text-foreground text-xs leading-tight outline-none focus:border-blue-500"
-                // biome-ignore lint/a11y/noAutofocus: input appears inline after user action; autofocus is intentional UX
               />
             ) : (
               <p className="truncate font-medium text-foreground text-xs leading-tight">{label}</p>
