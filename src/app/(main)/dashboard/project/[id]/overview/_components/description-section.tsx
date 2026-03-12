@@ -24,7 +24,7 @@ export function DescriptionSection({ projectId, description: initial }: Props) {
 
   return (
     <section className="space-y-3">
-      <h2 className="font-medium text-muted-foreground text-xs uppercase tracking-wider">Project Description</h2>
+      <h2 className="font-medium text-muted-foreground text-xs uppercase tracking-wider">AI Context</h2>
       <textarea
         value={value}
         onChange={(e) => setValue(e.target.value)}

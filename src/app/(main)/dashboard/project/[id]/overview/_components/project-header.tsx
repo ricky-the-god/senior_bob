@@ -42,7 +42,7 @@ export function ProjectHeader({ projectId, name, bio }: Props) {
   }
 
   return (
-    <div className="space-y-1.5">
+    <div className="space-y-3">
       {editingName ? (
         <input
           ref={nameRef}
@@ -56,12 +56,12 @@ export function ProjectHeader({ projectId, name, bio }: Props) {
               setEditingName(false);
             }
           }}
-          className="-mx-1 w-full rounded bg-transparent px-1 font-semibold text-foreground text-lg tracking-tight outline-none ring-1 ring-border focus:ring-foreground/30"
+          className="-mx-1 w-full rounded bg-transparent px-1 font-bold text-foreground text-2xl tracking-tight outline-none ring-1 ring-border focus:ring-foreground/30"
         />
       ) : (
         <button
           type="button"
-          className="cursor-text text-left font-semibold text-foreground text-lg tracking-tight transition-colors hover:text-foreground/80"
+          className="cursor-text text-left font-bold text-foreground text-2xl tracking-tight transition-colors hover:text-foreground/80"
           onClick={() => setEditingName(true)}
           title="Click to edit"
         >
@@ -69,14 +69,16 @@ export function ProjectHeader({ projectId, name, bio }: Props) {
         </button>
       )}
 
-      <textarea
-        value={bioValue}
-        onChange={(e) => setBioValue(e.target.value)}
-        onBlur={saveBio}
-        rows={2}
-        placeholder="Add a project description…"
-        className="w-full resize-none rounded bg-transparent px-0 text-muted-foreground text-xs leading-relaxed outline-none ring-0 placeholder:text-muted-foreground/40 focus:text-foreground focus:ring-1 focus:ring-border"
-      />
+      <div className="rounded-xl border border-border bg-card/60 px-4 py-3">
+        <textarea
+          value={bioValue}
+          onChange={(e) => setBioValue(e.target.value)}
+          onBlur={saveBio}
+          rows={2}
+          placeholder="Add a project description…"
+          className="w-full resize-none bg-transparent text-muted-foreground text-sm leading-relaxed outline-none placeholder:text-muted-foreground/40 focus:text-foreground"
+        />
+      </div>
     </div>
   );
 }

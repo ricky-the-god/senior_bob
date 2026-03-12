@@ -49,6 +49,9 @@ export function TechStackSection({ projectId, techStack: initial }: Props) {
   return (
     <section className="space-y-3">
       <h2 className="font-medium text-muted-foreground text-xs uppercase tracking-wider">Tech Stack</h2>
+      {stack.length === 0 && !showInput && (
+        <p className="text-muted-foreground/50 text-xs">No technologies added yet.</p>
+      )}
       <div className="flex flex-wrap items-center gap-1.5">
         {stack.map((tag) => (
           <span
@@ -90,7 +93,7 @@ export function TechStackSection({ projectId, techStack: initial }: Props) {
             className="flex items-center gap-1 rounded-md border border-border border-dashed px-2 py-0.5 text-muted-foreground text-xs transition-colors hover:border-foreground/30 hover:text-foreground"
           >
             <Plus className="size-3" />
-            Add
+            Add technology
           </button>
         )}
       </div>

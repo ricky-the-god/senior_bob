@@ -65,58 +65,71 @@ export function TeamSection({ projectId, members: initial, isOwner }: Props) {
     <section className="space-y-3">
       <h2 className="font-medium text-muted-foreground text-xs uppercase tracking-wider">Team</h2>
 
-      <div className="flex flex-wrap items-center gap-2">
-        {members.map((member) => (
-          <div key={member.id} className="group relative">
-            <Avatar className="h-7 w-7 ring-1 ring-border">
-              <AvatarImage src={member.avatar ?? undefined} alt={member.name ?? member.email} />
-              <AvatarFallback className="text-[10px]">{initials(member)}</AvatarFallback>
-            </Avatar>
-            {isOwner && (
-              <button
-                type="button"
-                onClick={() => handleRemove(member.id)}
-                className="-top-1 -right-1 absolute hidden h-3.5 w-3.5 items-center justify-center rounded-full bg-destructive text-destructive-foreground group-hover:flex"
-                aria-label={`Remove ${member.email}`}
-              >
-                <X className="size-2" />
-              </button>
-            )}
-          </div>
-        ))}
+      {members.length === 0 && (
+        <div className="rounded-lg border border-dashed border-border bg-card/30 px-4 py-6 text-center">
+          <p className="text-muted-foreground/60 text-xs">No team members yet.</p>
+        </div>
+      )}
 
-        {isOwner &&
-          (showInput ? (
-            <div className="flex items-center gap-1">
-              <input
-                ref={inputRef}
-                type="email"
-                value={emailInput}
-                onChange={(e) => setEmailInput(e.target.value)}
-                onBlur={inviteMember}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") inviteMember();
-                  if (e.key === "Escape") {
-                    setEmailInput("");
-                    setShowInput(false);
-                  }
-                }}
-                placeholder="user@example.com"
-                disabled={isPending}
-                className="w-40 rounded-md border border-border border-dashed bg-transparent px-2 py-0.5 text-xs outline-none focus:border-foreground/30 disabled:opacity-50"
-              />
+      {members.length > 0 && (
+        <div className="space-y-2">
+          {members.map((member) => (
+            <div key={member.id} className="group flex items-center gap-2.5">
+              <Avatar className="h-7 w-7 shrink-0 ring-1 ring-border">
+                <AvatarImage src={member.avatar ?? undefined} alt={member.name ?? member.email} />
+                <AvatarFallback className="text-[10px]">{initials(member)}</AvatarFallback>
+              </Avatar>
+              <div className="min-w-0 flex-1">
+                {member.name && <p className="truncate text-xs font-medium text-foreground">{member.name}</p>}
+                <p className="truncate text-[11px] text-muted-foreground/60">{member.email}</p>
+              </div>
+              {isOwner && (
+                <button
+                  type="button"
+                  onClick={() => handleRemove(member.id)}
+                  className="text-muted-foreground/40 opacity-0 transition-all hover:text-destructive group-hover:opacity-100"
+                  aria-label={`Remove ${member.email}`}
+                >
+                  <X className="size-3.5" />
+                </button>
+              )}
             </div>
+          ))}
+        </div>
+      )}
+
+      {isOwner && (
+        <>
+          {showInput ? (
+            <input
+              ref={inputRef}
+              type="email"
+              value={emailInput}
+              onChange={(e) => setEmailInput(e.target.value)}
+              onBlur={inviteMember}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") inviteMember();
+                if (e.key === "Escape") {
+                  setEmailInput("");
+                  setShowInput(false);
+                }
+              }}
+              placeholder="user@example.com"
+              disabled={isPending}
+              className="w-full rounded-md border border-border border-dashed bg-transparent px-2 py-1.5 text-xs outline-none focus:border-foreground/30 disabled:opacity-50"
+            />
           ) : (
             <button
               type="button"
               onClick={() => setShowInput(true)}
-              className="flex h-7 w-7 items-center justify-center rounded-full border border-border border-dashed text-muted-foreground transition-colors hover:border-foreground/30 hover:text-foreground"
-              aria-label="Add member"
+              className="flex items-center gap-1.5 rounded-md border border-border px-3 py-1.5 text-muted-foreground text-xs hover:border-foreground/30 hover:text-foreground transition-colors"
             >
               <Plus className="size-3.5" />
+              Invite member
             </button>
-          ))}
-      </div>
+          )}
+        </>
+      )}
 
       {error && <p className="text-destructive text-xs">{error}</p>}
     </section>

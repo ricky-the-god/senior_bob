@@ -18,21 +18,15 @@ type Props = {
   params: Promise<{ id: string }>;
 };
 
-// ─── Meta row ─────────────────────────────────────────────────────────────────
+// ─── Snapshot card ────────────────────────────────────────────────────────────
 
-function MetaRow({ label, children }: { label: string; children: React.ReactNode }) {
+function SnapshotCard({ label, value }: { label: string; value: number }) {
   return (
-    <div className="flex items-center justify-between border-border border-b py-3 last:border-0">
-      <span className="text-muted-foreground text-xs">{label}</span>
-      <div className="flex items-center gap-1.5">{children}</div>
+    <div className="rounded-xl border border-border bg-card p-4 text-center">
+      <p className="text-2xl font-semibold text-foreground">{value}</p>
+      <p className="mt-0.5 text-muted-foreground text-xs">{label}</p>
     </div>
   );
-}
-
-// ─── Section divider ──────────────────────────────────────────────────────────
-
-function Divider() {
-  return <div className="border-border border-t" />;
 }
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
@@ -57,86 +51,86 @@ export default async function OverviewPage({ params }: Props) {
   const appType = meta.app_type ? (APP_TYPE_MAP[meta.app_type] ?? null) : null;
 
   return (
-    <div className="flex flex-1 flex-col gap-6 overflow-y-auto p-6">
-      {/* Header — editable name + bio */}
-      <ProjectHeader projectId={id} name={project?.name ?? "Project"} bio={meta.bio ?? null} />
+    <div className="flex flex-1 flex-col gap-8 overflow-y-auto p-6 max-w-6xl mx-auto w-full">
+      {/* 1. Hero */}
+      <div className="space-y-4">
+        <ProjectHeader projectId={id} name={project?.name ?? "Project"} bio={meta.bio ?? null} />
 
-      {/* LLM context description */}
-      <DescriptionSection projectId={id} description={meta.wizard_description ?? null} />
-
-      <Divider />
-
-      {/* Metadata card */}
-      <div className="rounded-xl border border-border bg-card px-4">
-        {appType &&
-          (() => {
-            const { label, Icon } = appType;
-            return (
-              <MetaRow label="Type">
-                <Icon className="size-3.5 text-foreground/50" />
-                <span className="text-foreground text-xs">{label}</span>
-              </MetaRow>
-            );
-          })()}
-
-        {meta.is_new_app !== null && (
-          <MetaRow label="Origin">
-            {meta.is_new_app ? (
-              <>
-                <Sparkles className="size-3.5 text-foreground/50" />
-                <span className="text-foreground text-xs">Brand new app</span>
-              </>
-            ) : (
-              <>
-                <Building2 className="size-3.5 text-foreground/50" />
-                <span className="text-foreground text-xs">Existing app</span>
-              </>
-            )}
-          </MetaRow>
-        )}
-
-        {project?.created_at && (
-          <MetaRow label="Created">
-            <span className="text-foreground text-xs">
-              {formatDistanceToNow(new Date(project.created_at), { addSuffix: true })}
+        {/* Metadata badges */}
+        <div className="flex flex-wrap items-center gap-2">
+          {appType && (
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card/60 px-2.5 py-1 text-xs text-muted-foreground">
+              <appType.Icon className="size-3.5" />
+              {appType.label}
             </span>
-          </MetaRow>
-        )}
-
-        {project?.updated_at && (
-          <MetaRow label="Last updated">
-            <span className="text-foreground text-xs">
-              {formatDistanceToNow(new Date(project.updated_at), { addSuffix: true })}
+          )}
+          {meta.is_new_app !== null && (
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card/60 px-2.5 py-1 text-xs text-muted-foreground">
+              {meta.is_new_app ? (
+                <>
+                  <Sparkles className="size-3.5" />
+                  Brand new app
+                </>
+              ) : (
+                <>
+                  <Building2 className="size-3.5" />
+                  Existing app
+                </>
+              )}
             </span>
-          </MetaRow>
-        )}
+          )}
+          {project?.created_at && (
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card/60 px-2.5 py-1 text-xs text-muted-foreground">
+              Created {formatDistanceToNow(new Date(project.created_at), { addSuffix: true })}
+            </span>
+          )}
+          {project?.updated_at && (
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card/60 px-2.5 py-1 text-xs text-muted-foreground">
+              Updated {formatDistanceToNow(new Date(project.updated_at), { addSuffix: true })}
+            </span>
+          )}
+        </div>
       </div>
 
-      <Divider />
+      {/* 2. Snapshot row */}
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <SnapshotCard label="Stack items" value={meta.tech_stack?.length ?? 0} />
+        <SnapshotCard label="Sprints" value={meta.task_sprints?.length ?? 0} />
+        <SnapshotCard label="Releases" value={meta.releases?.length ?? 0} />
+        <SnapshotCard label="Team" value={members.length} />
+      </div>
 
-      {/* Tech Stack */}
-      <TechStackSection projectId={id} techStack={meta.tech_stack ?? []} />
+      {/* 3. 2-column grid */}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        {/* Left column */}
+        <div className="space-y-6">
+          <div className="rounded-xl border border-border bg-card p-5">
+            <TechStackSection projectId={id} techStack={meta.tech_stack ?? []} />
+          </div>
+          <div className="rounded-xl border border-border bg-card p-5">
+            <SprintsSection taskSprints={meta.task_sprints ?? []} />
+          </div>
+          <div className="rounded-xl border border-border bg-card p-5">
+            <ReleasesSection projectId={id} releases={meta.releases ?? []} />
+          </div>
+        </div>
 
-      <Divider />
+        {/* Right column */}
+        <div className="space-y-6">
+          <div className="rounded-xl border border-border bg-card p-5">
+            <TeamSection projectId={id} members={members} isOwner={isOwner} />
+          </div>
+          <div className="rounded-xl border border-border bg-card p-5">
+            <DescriptionSection projectId={id} description={meta.wizard_description ?? null} />
+          </div>
+        </div>
+      </div>
 
-      {/* Sprints */}
-      <SprintsSection taskSprints={meta.task_sprints ?? []} />
-
-      <Divider />
-
-      {/* Releases */}
-      <ReleasesSection projectId={id} releases={meta.releases ?? []} />
-
-      <Divider />
-
-      {/* Team */}
-      <TeamSection projectId={id} members={members} isOwner={isOwner} />
-
+      {/* 4. Danger Zone */}
       {isOwner && (
-        <>
-          <Divider />
+        <div className="border-t border-border pt-6">
           <DangerZone projectId={id} projectName={project?.name ?? "Project"} />
-        </>
+        </div>
       )}
     </div>
   );

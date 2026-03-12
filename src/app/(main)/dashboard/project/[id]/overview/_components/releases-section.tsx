@@ -52,6 +52,12 @@ export function ReleasesSection({ projectId, releases: initial }: Props) {
     <section className="space-y-3">
       <h2 className="font-medium text-muted-foreground text-xs uppercase tracking-wider">Releases</h2>
 
+      {releases.length === 0 && !showForm && (
+        <div className="rounded-lg border border-dashed border-border bg-card/30 px-4 py-6 text-center">
+          <p className="text-muted-foreground/60 text-xs">No releases tracked yet.</p>
+        </div>
+      )}
+
       <div className="space-y-1">
         {releases.map((release) => (
           <div key={release.id} className="group flex items-center gap-3 py-1.5">
@@ -124,10 +130,10 @@ export function ReleasesSection({ projectId, releases: initial }: Props) {
         <button
           type="button"
           onClick={() => setShowForm(true)}
-          className="flex items-center gap-1.5 text-muted-foreground text-xs transition-colors hover:text-foreground"
+          className="mt-2 flex items-center gap-1.5 rounded-md border border-border px-3 py-1.5 text-muted-foreground text-xs hover:border-foreground/30 hover:text-foreground transition-colors"
         >
-          <Plus className="size-3" />
-          Add Release
+          <Plus className="size-3.5" />
+          Add release
         </button>
       )}
     </section>

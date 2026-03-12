@@ -10,7 +10,10 @@ export function SprintsSection({ taskSprints }: Props) {
       <h2 className="font-medium text-muted-foreground text-xs uppercase tracking-wider">Engineering Backlog</h2>
 
       {taskSprints.length === 0 ? (
-        <p className="text-muted-foreground text-xs">No sprints yet — generate tasks from System Design.</p>
+        <div className="rounded-lg border border-dashed border-border bg-card/30 px-4 py-6 text-center">
+          <p className="text-muted-foreground/60 text-xs">No sprints yet.</p>
+          <p className="mt-1 text-[11px] text-muted-foreground/40">Generate tasks from the System Design canvas.</p>
+        </div>
       ) : (
         <div className="space-y-4">
           {taskSprints.map((sprint, index) => {
