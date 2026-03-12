@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { ChevronDown, ChevronRight, Clipboard, Loader2, Lock, Network, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 
+import { TextShimmer } from "@/components/ui/text-shimmer";
 import { generateAndSaveTasks } from "@/lib/api/tasks";
 import type { ProjectMeta, Task, TaskSprint, TaskStatus } from "@/lib/project-types";
 import { cn } from "@/lib/utils";
@@ -166,10 +167,9 @@ function SprintSection({
                 className="flex items-center gap-2 rounded-lg border border-border bg-foreground/[0.03] px-4 py-2 text-foreground text-sm transition-colors hover:bg-foreground/8 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {generating ? (
-                  <>
-                    <Loader2 className="size-3.5 animate-spin" />
-                    <span>Generating…</span>
-                  </>
+                  <TextShimmer duration={1.5} className="text-sm font-medium">
+                    Generating tasks…
+                  </TextShimmer>
                 ) : (
                   <>
                     <Sparkles className="size-3.5" />
@@ -324,10 +324,9 @@ export function TasksBoard({ projectId, taskSprints: initialSprints, projectMeta
           className="flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-muted-foreground text-xs transition-colors hover:bg-foreground/8 hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
         >
           {regenerating ? (
-            <>
-              <Loader2 className="size-3 animate-spin" />
-              <span>Regenerating…</span>
-            </>
+            <TextShimmer duration={1.5} className="text-xs font-medium">
+              Regenerating tasks…
+            </TextShimmer>
           ) : (
             <>
               <Sparkles className="size-3" />
