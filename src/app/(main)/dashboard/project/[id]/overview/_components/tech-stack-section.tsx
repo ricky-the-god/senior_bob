@@ -50,7 +50,9 @@ export function TechStackSection({ projectId, techStack: initial }: Props) {
     <section className="space-y-3">
       <h2 className="font-medium text-muted-foreground text-xs uppercase tracking-wider">Tech Stack</h2>
       {stack.length === 0 && !showInput && (
-        <p className="text-muted-foreground/50 text-xs">No technologies added yet.</p>
+        <p className="text-muted-foreground/50 text-xs">
+          Add your languages, frameworks, and tools — the AI uses this when designing your architecture.
+        </p>
       )}
       <div className="flex flex-wrap items-center gap-1.5">
         {stack.map((tag) => (

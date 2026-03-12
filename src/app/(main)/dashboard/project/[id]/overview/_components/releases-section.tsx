@@ -55,6 +55,9 @@ export function ReleasesSection({ projectId, releases: initial }: Props) {
       {releases.length === 0 && !showForm && (
         <div className="rounded-lg border border-dashed border-border bg-card/30 px-4 py-6 text-center">
           <p className="text-muted-foreground/60 text-xs">No releases tracked yet.</p>
+          <p className="mt-1 text-[11px] text-muted-foreground/40">
+            Track versions like v1.0, v1.1-beta, and their ship dates here.
+          </p>
         </div>
       )}
 

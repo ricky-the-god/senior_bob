@@ -63,11 +63,14 @@ export function TeamSection({ projectId, members: initial, isOwner }: Props) {
 
   return (
     <section className="space-y-3">
-      <h2 className="font-medium text-muted-foreground text-xs uppercase tracking-wider">Team</h2>
+      <h2 className="font-medium text-muted-foreground text-xs uppercase tracking-wider">Collaborators</h2>
 
       {members.length === 0 && (
         <div className="rounded-lg border border-dashed border-border bg-card/30 px-4 py-6 text-center">
-          <p className="text-muted-foreground/60 text-xs">No team members yet.</p>
+          <p className="text-muted-foreground/60 text-xs">Just you for now.</p>
+          <p className="mt-1 text-[11px] text-muted-foreground/40">
+            Invite a co-founder or collaborator when you're ready.
+          </p>
         </div>
       )}
 
@@ -125,7 +128,7 @@ export function TeamSection({ projectId, members: initial, isOwner }: Props) {
               className="flex items-center gap-1.5 rounded-md border border-border px-3 py-1.5 text-muted-foreground text-xs hover:border-foreground/30 hover:text-foreground transition-colors"
             >
               <Plus className="size-3.5" />
-              Invite member
+              Invite collaborator
             </button>
           )}
         </>

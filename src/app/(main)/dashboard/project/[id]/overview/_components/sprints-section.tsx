@@ -7,12 +7,14 @@ type Props = {
 export function SprintsSection({ taskSprints }: Props) {
   return (
     <section className="space-y-3">
-      <h2 className="font-medium text-muted-foreground text-xs uppercase tracking-wider">Engineering Backlog</h2>
+      <h2 className="font-medium text-muted-foreground text-xs uppercase tracking-wider">Implementation Plan</h2>
 
       {taskSprints.length === 0 ? (
         <div className="rounded-lg border border-dashed border-border bg-card/30 px-4 py-6 text-center">
-          <p className="text-muted-foreground/60 text-xs">No sprints yet.</p>
-          <p className="mt-1 text-[11px] text-muted-foreground/40">Generate tasks from the System Design canvas.</p>
+          <p className="text-muted-foreground/60 text-xs">No plan generated yet.</p>
+          <p className="mt-1 text-[11px] text-muted-foreground/40">
+            Build your system diagram, then use the AI to break it into sprints and tasks.
+          </p>
         </div>
       ) : (
         <div className="space-y-4">
