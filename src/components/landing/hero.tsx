@@ -81,7 +81,11 @@ export const Hero = () => {
                 {/* Button fades out on expand */}
                 <AnimatePresence>
                   {!isExpanded && (
-                    <motion.div key="btn" exit={{ opacity: 0, transition: { duration: 0.12 } }}>
+                    <motion.div
+                      key="btn"
+                      className="relative z-[1]"
+                      exit={{ opacity: 0, transition: { duration: 0.12 } }}
+                    >
                       <ShimmerButton
                         background="rgba(0,0,0,1)"
                         shimmerColor="#ffffff"
