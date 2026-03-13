@@ -1,16 +1,19 @@
 "use client";
 
+import { useMemo } from "react";
+
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-import { Database, Info, LayoutDashboard, ListTodo, Network } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
+import { Compass, Database, Info, LayoutDashboard, Network, Package } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 
 type NavItem = {
   href: string;
   label: string;
-  icon: React.ElementType;
+  icon: LucideIcon;
 };
 
 type Props = {
@@ -21,12 +24,16 @@ type Props = {
 export function ProjectNav({ id, projectName }: Props) {
   const pathname = usePathname();
 
-  const navItems: NavItem[] = [
-    { href: `/dashboard/project/${id}/overview`, label: "Overview", icon: Info },
-    { href: `/dashboard/project/${id}/schema`, label: "Schema Visualizer", icon: Database },
-    { href: `/dashboard/project/${id}/system-design`, label: "System Design", icon: Network },
-    { href: `/dashboard/project/${id}/tasks`, label: "Tasks", icon: ListTodo },
-  ];
+  const navItems = useMemo<NavItem[]>(
+    () => [
+      { href: `/dashboard/project/${id}/guided-setup`, label: "Guided Setup", icon: Compass },
+      { href: `/dashboard/project/${id}/overview`, label: "Overview", icon: Info },
+      { href: `/dashboard/project/${id}/system-design`, label: "System Design", icon: Network },
+      { href: `/dashboard/project/${id}/schema`, label: "Schema Visualizer", icon: Database },
+      { href: `/dashboard/project/${id}/output-pack`, label: "Output Pack", icon: Package },
+    ],
+    [id],
+  );
 
   return (
     <aside className="mr-6 flex w-52 flex-shrink-0 flex-col overflow-y-auto border-border border-r bg-card">
@@ -41,7 +48,7 @@ export function ProjectNav({ id, projectName }: Props) {
       {/* Nav items */}
       <nav className="flex flex-col gap-0.5 p-2">
         {navItems.map(({ href, label, icon: Icon }) => {
-          const active = pathname === href;
+          const active = pathname === href || pathname.startsWith(`${href}/`);
           return (
             <Link
               key={href}
