@@ -61,6 +61,45 @@ export type TaskSprint = {
   tasks: Task[];
 };
 
+export type GuidedSetupWorkflow = {
+  mainGoal: string;
+  mainFlow: string;
+  completed: boolean;
+  seniorbobSummary?: string;
+};
+
+export type GuidedSetupFeatures = {
+  selected: string[];
+  custom: string[];
+  completed: boolean;
+  seniorbobSummary?: string;
+};
+
+export type GuidedSetupIntegrations = {
+  tools: string[];
+  constraints: string;
+  stackPreference: string;
+  completed: boolean;
+  seniorbobSummary?: string;
+};
+
+export type GuidedSetupData = {
+  workflow?: GuidedSetupWorkflow;
+  features?: GuidedSetupFeatures;
+  integrations?: GuidedSetupIntegrations;
+};
+
+export type OutputFile = {
+  filename: string;
+  content: string;
+  generated_at: string;
+};
+
+export type OutputPack = {
+  files: OutputFile[];
+  generated_at: string;
+};
+
 export type ProjectMeta = {
   app_type: AppTypeId | null;
   is_new_app: boolean | null;
@@ -73,6 +112,8 @@ export type ProjectMeta = {
   backend: BackendId | null;
   wizard_description: string | null;
   task_sprints: TaskSprint[] | null;
+  guided_setup: GuidedSetupData | null;
+  output_pack: OutputPack | null;
 };
 
 export const DEFAULT_PROJECT_META: ProjectMeta = {
@@ -87,6 +128,8 @@ export const DEFAULT_PROJECT_META: ProjectMeta = {
   backend: null,
   wizard_description: null,
   task_sprints: null,
+  guided_setup: null,
+  output_pack: null,
 };
 
 export function parseProjectMeta(description: string | null): ProjectMeta {
