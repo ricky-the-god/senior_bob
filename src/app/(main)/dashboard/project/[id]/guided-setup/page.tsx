@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { notFound } from "next/navigation";
 
 import { ArrowRight } from "lucide-react";
 
@@ -6,6 +7,9 @@ import { parseProjectMeta } from "@/lib/project-types";
 import { getProject } from "@/lib/queries/get-project";
 
 import { StepCard } from "./_components/step-card";
+import { FeaturesResult } from "./_components/step-result-features";
+import { IntegrationsResult } from "./_components/step-result-integrations";
+import { WorkflowResult } from "./_components/step-result-workflow";
 
 type Props = {
   params: Promise<{ id: string }>;
@@ -14,7 +18,8 @@ type Props = {
 export default async function GuidedSetupIndexPage({ params }: Props) {
   const { id } = await params;
   const project = await getProject(id);
-  const meta = parseProjectMeta(project?.description ?? null);
+  if (!project) notFound();
+  const meta = parseProjectMeta(project.description ?? null);
   const setup = meta.guided_setup ?? {};
 
   const workflowComplete = !!setup.workflow?.completed;
@@ -22,9 +27,13 @@ export default async function GuidedSetupIndexPage({ params }: Props) {
   const integrationsComplete = !!setup.integrations?.completed;
   const allComplete = workflowComplete && featuresComplete && integrationsComplete;
 
+  const workflowState = workflowComplete ? "completed" : setup.workflow ? "in_progress" : "not_started";
+  const featuresState = featuresComplete ? "completed" : setup.features ? "in_progress" : "not_started";
+  const integrationsState = integrationsComplete ? "completed" : setup.integrations ? "in_progress" : "not_started";
+
   return (
     <div className="flex flex-1 flex-col overflow-y-auto p-6">
-      <div className="mx-auto w-full max-w-2xl space-y-6">
+      <div className="mx-auto w-full max-w-5xl space-y-6">
         <div className="space-y-1">
           <h1 className="font-semibold text-foreground text-xl">Guided Setup</h1>
           <p className="text-muted-foreground text-sm">
@@ -32,38 +41,38 @@ export default async function GuidedSetupIndexPage({ params }: Props) {
           </p>
         </div>
 
-        <div className="flex flex-col gap-4">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
           <StepCard
             stepNumber={1}
             label="Workflow"
             description="Define the main goal and primary user flow."
-            state={workflowComplete ? "completed" : "active"}
+            state={workflowState}
             href={`/dashboard/project/${id}/guided-setup/workflow`}
-            ctaLabel={!setup.workflow ? "Start" : "Continue"}
-            preview={setup.workflow?.mainGoal}
-          />
+          >
+            {workflowComplete && setup.workflow && <WorkflowResult data={setup.workflow} />}
+          </StepCard>
+
           <StepCard
             stepNumber={2}
             label="Features"
             description="Select the core features your product needs."
-            state={featuresComplete ? "completed" : workflowComplete ? "active" : "locked"}
+            state={featuresState}
             href={`/dashboard/project/${id}/guided-setup/features`}
-            ctaLabel={!setup.features ? "Start" : "Continue"}
-            preview={
-              setup.features
-                ? `${setup.features.selected.length + setup.features.custom.length} features selected`
-                : undefined
-            }
-          />
+            disabled={!workflowComplete}
+          >
+            {featuresComplete && setup.features && <FeaturesResult data={setup.features} />}
+          </StepCard>
+
           <StepCard
             stepNumber={3}
             label="Integrations"
             description="Identify external tools and technical constraints."
-            state={integrationsComplete ? "completed" : featuresComplete ? "active" : "locked"}
+            state={integrationsState}
             href={`/dashboard/project/${id}/guided-setup/integrations`}
-            ctaLabel={!setup.integrations ? "Start" : "Continue"}
-            preview={setup.integrations?.tools.slice(0, 3).join(", ")}
-          />
+            disabled={!featuresComplete}
+          >
+            {integrationsComplete && setup.integrations && <IntegrationsResult data={setup.integrations} />}
+          </StepCard>
         </div>
 
         {allComplete && (

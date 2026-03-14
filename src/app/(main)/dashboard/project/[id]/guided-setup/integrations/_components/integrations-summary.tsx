@@ -25,8 +25,8 @@ export function IntegrationsSummary({ projectId, initialData }: Props) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [selectedTools, setSelectedTools] = useState<string[]>(initialData.tools);
-  const [constraints, setConstraints] = useState(initialData.constraints);
-  const [stackPreference, setStackPreference] = useState(initialData.stackPreference);
+  const [constraints, setConstraints] = useState(initialData.constraints ?? "");
+  const [stackPreference, setStackPreference] = useState(initialData.stackPreference ?? "");
 
   const handleChipSelect = (v: string) => {
     setSelectedTools((prev) => (prev.includes(v) ? prev.filter((x) => x !== v) : [...prev, v]));

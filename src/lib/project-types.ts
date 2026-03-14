@@ -77,8 +77,8 @@ export type GuidedSetupFeatures = {
 
 export type GuidedSetupIntegrations = {
   tools: string[];
-  constraints: string;
-  stackPreference: string;
+  constraints: string | null;
+  stackPreference: string | null;
   completed: boolean;
   seniorbobSummary?: string;
 };
