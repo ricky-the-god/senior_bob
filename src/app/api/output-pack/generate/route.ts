@@ -1,4 +1,4 @@
-import { anthropic } from "@ai-sdk/anthropic";
+import { groq } from "@ai-sdk/groq";
 import { generateObject } from "ai";
 import { z } from "zod";
 
@@ -133,7 +133,7 @@ ${sprint1Summary}
 Generate the 5 markdown files described in your instructions.`;
 
   const { object } = await generateObject({
-    model: anthropic("claude-sonnet-4-6"),
+    model: groq("openai/gpt-oss-120b"),
     system: SYSTEM_PROMPT,
     prompt: userMessage,
     schema: ResponseSchema,
