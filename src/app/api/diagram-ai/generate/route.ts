@@ -22,7 +22,7 @@ const NodeSchema = z.object({
   id: z.string(),
   type: z.enum(["service", "database", "cache", "queue", "gateway", "client", "external"]),
   position: z.object({ x: z.number(), y: z.number() }),
-  data: z.object({ label: z.string(), sublabel: z.string().optional() }),
+  data: z.object({ label: z.string(), sublabel: z.string() }),
 });
 
 const EdgeSchema = z.object({
