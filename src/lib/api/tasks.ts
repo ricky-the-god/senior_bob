@@ -3,7 +3,10 @@ import type { Edge, Node } from "@xyflow/react";
 import type { ProjectMeta, TaskSprint } from "@/lib/project-types";
 import { updateProjectMeta } from "@/server/projects";
 
-type GenerateContext = Pick<ProjectMeta, "app_type" | "tech_stack" | "wizard_description" | "infra" | "backend">;
+type GenerateContext = Pick<
+  ProjectMeta,
+  "app_type" | "tech_stack" | "wizard_description" | "infra" | "backend" | "guided_setup"
+>;
 
 /**
  * Calls /api/tasks/generate, saves the result to ProjectMeta, and returns the sprints.
@@ -28,6 +31,7 @@ export async function generateAndSaveTasks(
             wizard_description: context.wizard_description ?? undefined,
             infra: context.infra ?? undefined,
             backend: context.backend ?? undefined,
+            guided_setup: context.guided_setup ?? undefined,
           }
         : undefined,
     }),

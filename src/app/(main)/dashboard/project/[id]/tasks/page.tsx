@@ -23,6 +23,7 @@ export default async function TasksPage({ params }: Props) {
           wizard_description: meta.wizard_description,
           infra: meta.infra,
           backend: meta.backend,
+          guided_setup: meta.guided_setup,
         }}
       />
     </div>

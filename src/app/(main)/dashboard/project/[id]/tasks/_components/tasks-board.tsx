@@ -203,7 +203,10 @@ function SprintSection({
 type Props = {
   projectId: string;
   taskSprints: TaskSprint[] | null;
-  projectMeta: Pick<ProjectMeta, "app_type" | "tech_stack" | "wizard_description" | "infra" | "backend">;
+  projectMeta: Pick<
+    ProjectMeta,
+    "app_type" | "tech_stack" | "wizard_description" | "infra" | "backend" | "guided_setup"
+  >;
 };
 
 export function TasksBoard({ projectId, taskSprints: initialSprints, projectMeta }: Props) {
@@ -247,6 +250,7 @@ export function TasksBoard({ projectId, taskSprints: initialSprints, projectMeta
               wizard_description: projectMeta.wizard_description ?? undefined,
               infra: projectMeta.infra ?? undefined,
               backend: projectMeta.backend ?? undefined,
+              guided_setup: projectMeta.guided_setup ?? undefined,
             },
           }),
         });

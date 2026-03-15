@@ -2,6 +2,7 @@ import { groq } from "@ai-sdk/groq";
 import { generateObject } from "ai";
 import { z } from "zod";
 
+import { fetchRequirementsBlock } from "@/lib/ai-context";
 import { createClient } from "@/lib/supabase/server";
 
 export const maxDuration = 30;
@@ -14,6 +15,7 @@ const RequestSchema = z.object({
       edges: z.array(z.unknown()).max(200),
     })
     .optional(),
+  projectId: z.string().uuid().optional(),
 });
 
 const NodeSchema = z.object({
@@ -51,7 +53,7 @@ function resolveHandles(
   return dx >= 0 ? { sourceHandle: "right", targetHandle: "left" } : { sourceHandle: "left", targetHandle: "right" };
 }
 
-const SYSTEM_PROMPT = `You are a senior system architecture expert. Given a natural language instruction,
+const BASE_SYSTEM_PROMPT = `You are a senior system architecture expert. Given a natural language instruction,
 generate React Flow nodes and edges to add to or update a system design diagram.
 
 Layout guidelines:
@@ -71,7 +73,11 @@ export async function POST(req: Request) {
   const parse = RequestSchema.safeParse(await req.json());
   if (!parse.success) return new Response("Bad Request", { status: 400 });
 
-  const { prompt, currentDiagram } = parse.data;
+  const { prompt, currentDiagram, projectId } = parse.data;
+
+  const requirementsBlock = projectId ? await fetchRequirementsBlock(supabase, projectId, user.id) : "";
+
+  const systemPrompt = requirementsBlock ? `${requirementsBlock}${BASE_SYSTEM_PROMPT}` : BASE_SYSTEM_PROMPT;
 
   const userMessage = currentDiagram
     ? `Current diagram:\n${JSON.stringify(currentDiagram, null, 2)}\n\nInstruction: ${prompt}`
@@ -79,7 +85,7 @@ export async function POST(req: Request) {
 
   const { object } = await generateObject({
     model: groq("openai/gpt-oss-120b"),
-    system: SYSTEM_PROMPT,
+    system: systemPrompt,
     prompt: userMessage,
     schema: DiagramSchema,
   });

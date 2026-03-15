@@ -11,6 +11,7 @@ type Props = {
   onApplyDiagram: (nodes: Node[], edges: Edge[]) => void;
   currentNodes: Node[];
   currentEdges: Edge[];
+  projectId: string;
 };
 
 const SUGGESTIONS = [
@@ -21,7 +22,7 @@ const SUGGESTIONS = [
   "Show a microservices architecture",
 ];
 
-export function AiCommandPalette({ open, onClose, onApplyDiagram, currentNodes, currentEdges }: Props) {
+export function AiCommandPalette({ open, onClose, onApplyDiagram, currentNodes, currentEdges, projectId }: Props) {
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState<"idle" | "loading" | "done" | "error">("idle");
   const inputRef = useRef<HTMLInputElement>(null);
@@ -56,7 +57,7 @@ export function AiCommandPalette({ open, onClose, onApplyDiagram, currentNodes, 
       const res = await fetch("/api/diagram-ai/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt, currentDiagram }),
+        body: JSON.stringify({ prompt, currentDiagram, projectId }),
       });
 
       if (!res.ok) throw new Error("Failed");

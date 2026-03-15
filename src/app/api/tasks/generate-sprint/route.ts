@@ -2,6 +2,7 @@ import { groq } from "@ai-sdk/groq";
 import { generateObject } from "ai";
 import { z } from "zod";
 
+import { buildRequirementsBlock } from "@/lib/ai-context";
 import { createClient } from "@/lib/supabase/server";
 
 export const maxDuration = 30;
@@ -40,6 +41,19 @@ const RequestSchema = z.object({
       wizard_description: z.string().max(1000).optional(),
       infra: z.string().optional(),
       backend: z.string().optional(),
+      guided_setup: z
+        .object({
+          workflow: z.object({ mainGoal: z.string(), mainFlow: z.string() }).optional(),
+          features: z.object({ selected: z.array(z.string()), custom: z.array(z.string()) }).optional(),
+          integrations: z
+            .object({
+              tools: z.array(z.string()),
+              constraints: z.string().nullable().optional(),
+              stackPreference: z.string().nullable().optional(),
+            })
+            .optional(),
+        })
+        .optional(),
     })
     .optional(),
 });
@@ -85,6 +99,8 @@ export async function POST(req: Request) {
   const sprintNumber = sprintId === "sprint-2" ? 2 : 3;
   const previousSprints = existingSprints.filter((s) => s.id !== sprintId);
 
+  const requirementsSection = context?.guided_setup ? `\n${buildRequirementsBlock(context.guided_setup)}` : "";
+
   const userMessage = `Sprint to generate tasks for:
 - ID: ${sprintId}
 - Name: ${targetSprint.name}
@@ -100,7 +116,7 @@ ${
 - Tech stack: ${context.tech_stack?.join(", ") ?? "unknown"}
 - Infrastructure: ${context.infra ?? "unknown"}
 - Backend: ${context.backend ?? "unknown"}
-- Description: ${context.wizard_description ?? "none"}`
+- Description: ${context.wizard_description ?? "none"}${requirementsSection}`
     : ""
 }
 

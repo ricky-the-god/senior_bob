@@ -1,9 +1,22 @@
 import { groq } from "@ai-sdk/groq";
 import { convertToModelMessages, streamText, type UIMessage } from "ai";
+import { z } from "zod";
 
+import { fetchRequirementsBlock } from "@/lib/ai-context";
 import { createClient } from "@/lib/supabase/server";
 
 export const maxDuration = 30;
+
+const RequestSchema = z.object({
+  messages: z.array(z.unknown()),
+  currentDiagram: z
+    .object({
+      nodes: z.array(z.unknown()).max(100),
+      edges: z.array(z.unknown()).max(200),
+    })
+    .optional(),
+  projectId: z.string().uuid().optional(),
+});
 
 const SYSTEM_PROMPT = `You are a senior system architecture expert helping engineers design distributed systems.
 
@@ -40,27 +53,31 @@ export async function POST(req: Request) {
   } = await supabase.auth.getUser();
   if (!user) return new Response("Unauthorized", { status: 401 });
 
-  const body = (await req.json()) as {
-    messages: UIMessage[];
-    currentDiagram?: { nodes: unknown[]; edges: unknown[] };
-  };
+  const parse = RequestSchema.safeParse(await req.json());
+  if (!parse.success) return new Response("Bad Request", { status: 400 });
+
+  const { messages, currentDiagram, projectId } = parse.data;
 
   // Truncate oversized diagrams to avoid token overflows
-  const diagram = body.currentDiagram
+  const diagram = currentDiagram
     ? {
-        nodes: body.currentDiagram.nodes.slice(0, MAX_DIAGRAM_NODES),
-        edges: body.currentDiagram.edges.slice(0, MAX_DIAGRAM_NODES * 2),
+        nodes: currentDiagram.nodes.slice(0, MAX_DIAGRAM_NODES),
+        edges: currentDiagram.edges.slice(0, MAX_DIAGRAM_NODES * 2),
       }
     : undefined;
 
+  const requirementsBlock = projectId ? await fetchRequirementsBlock(supabase, projectId, user.id) : "";
+
+  const baseSystem = requirementsBlock ? `${requirementsBlock}${SYSTEM_PROMPT}` : SYSTEM_PROMPT;
+
   const systemWithContext = diagram
-    ? `${SYSTEM_PROMPT}\n\nCurrent diagram state:\n\`\`\`json\n${JSON.stringify(diagram, null, 2)}\n\`\`\``
-    : SYSTEM_PROMPT;
+    ? `${baseSystem}\n\nCurrent diagram state:\n\`\`\`json\n${JSON.stringify(diagram, null, 2)}\n\`\`\``
+    : baseSystem;
 
   const result = streamText({
     model: groq("llama-3.3-70b-versatile"),
     system: systemWithContext,
-    messages: await convertToModelMessages(body.messages),
+    messages: await convertToModelMessages(messages as UIMessage[]),
   });
 
   return result.toUIMessageStreamResponse();

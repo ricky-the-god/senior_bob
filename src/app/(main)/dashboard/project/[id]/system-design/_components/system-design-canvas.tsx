@@ -75,7 +75,10 @@ type Props = {
   projectId: string;
   projectName: string;
   initialData: DiagramData | null;
-  projectMeta?: Pick<ProjectMeta, "app_type" | "tech_stack" | "wizard_description" | "infra" | "backend">;
+  projectMeta?: Pick<
+    ProjectMeta,
+    "app_type" | "tech_stack" | "wizard_description" | "infra" | "backend" | "guided_setup"
+  >;
 };
 
 type GhostEdgeProps = {
@@ -431,7 +434,8 @@ function CanvasInner({ projectId, projectName, initialData, projectMeta }: Props
               onEdgesChange={onEdgesChange}
               onConnect={onConnect}
               onPaneClick={onPaneClick}
-              fitView={!initialData}
+              fitView
+              fitViewOptions={{ padding: 0.2 }}
               defaultEdgeOptions={{
                 type: "custom",
                 markerEnd: DEFAULT_MARKER_END,
@@ -473,6 +477,7 @@ function CanvasInner({ projectId, projectName, initialData, projectMeta }: Props
           onApplyDiagram={applyDiagramUpdate}
           currentNodes={nodes}
           currentEdges={edges}
+          projectId={projectId}
         />
       </div>
     </CanvasContext.Provider>

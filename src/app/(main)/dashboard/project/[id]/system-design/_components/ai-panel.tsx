@@ -45,16 +45,18 @@ function getMessageText(msg: UIMessage): string {
 
 const MAX_DIAGRAM_NODES = 80;
 
-export function AiPanel({ nodes, edges, onApplyDiagram }: Props) {
+export function AiPanel({ projectId, nodes, edges, onApplyDiagram }: Props) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [input, setInput] = useState("");
 
-  // Keep a ref to the latest diagram so the transport (created once) always
-  // sends the current state without being re-created on every canvas change.
+  // Keep refs to the latest diagram and projectId so the transport (created once) always
+  // sends the current state without being re-created on every canvas change or remount.
   const diagramRef = useRef({ nodes, edges });
+  const projectIdRef = useRef(projectId);
   useEffect(() => {
     diagramRef.current = { nodes, edges };
-  }, [nodes, edges]);
+    projectIdRef.current = projectId;
+  }, [nodes, edges, projectId]);
 
   // Transport is stable — only created once. Dynamic diagram state is injected
   // per-request via the custom fetch override that reads from the ref above.
@@ -71,7 +73,7 @@ export function AiPanel({ nodes, edges, onApplyDiagram }: Props) {
           };
           return fetch(url, {
             ...options,
-            body: JSON.stringify({ ...existing, currentDiagram: truncated }),
+            body: JSON.stringify({ ...existing, currentDiagram: truncated, projectId: projectIdRef.current }),
           });
         },
       }),
