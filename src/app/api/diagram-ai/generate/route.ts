@@ -2,7 +2,7 @@ import { groq } from "@ai-sdk/groq";
 import { generateObject } from "ai";
 import { z } from "zod";
 
-import { fetchRequirementsBlock } from "@/lib/ai-context";
+import { fetchFullContext } from "@/lib/ai-context";
 import { createClient } from "@/lib/supabase/server";
 
 export const maxDuration = 30;
@@ -75,9 +75,9 @@ export async function POST(req: Request) {
 
   const { prompt, currentDiagram, projectId } = parse.data;
 
-  const requirementsBlock = projectId ? await fetchRequirementsBlock(supabase, projectId, user.id) : "";
+  const context = projectId ? await fetchFullContext(supabase, projectId, user.id, "system-design") : "";
 
-  const systemPrompt = requirementsBlock ? `${requirementsBlock}${BASE_SYSTEM_PROMPT}` : BASE_SYSTEM_PROMPT;
+  const systemPrompt = context ? `${context}${BASE_SYSTEM_PROMPT}` : BASE_SYSTEM_PROMPT;
 
   const userMessage = currentDiagram
     ? `Current diagram:\n${JSON.stringify(currentDiagram, null, 2)}\n\nInstruction: ${prompt}`

@@ -26,17 +26,20 @@ const RequestSchema = z.object({
 const WorkflowExtract = z.object({
   mainGoal: z.string(),
   mainFlow: z.string(),
+  seniorbobSummary: z.string(), // one sentence: "A [type] app that [does X] for [who]"
 });
 
 const FeaturesExtract = z.object({
   selected: z.array(z.string()),
   custom: z.array(z.string()),
+  seniorbobSummary: z.string(), // one sentence summarizing the feature set
 });
 
 const IntegrationsExtract = z.object({
   tools: z.array(z.string()),
   constraints: z.string(),
   stackPreference: z.string(),
+  seniorbobSummary: z.string(), // one sentence summarizing integration choices
 });
 
 const STEP_SCHEMA = {
@@ -84,7 +87,7 @@ export async function POST(req: Request) {
   const { object } = await generateObject({
     model: groq("openai/gpt-oss-120b"),
     schema,
-    prompt: `Extract the structured data from this conversation transcript:\n\n${transcript}`,
+    prompt: `Extract the structured data from this conversation transcript. For seniorbobSummary, write one concise sentence from SeniorBob's perspective summarizing what was learned in this step.\n\n${transcript}`,
   });
 
   return Response.json(object);

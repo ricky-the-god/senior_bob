@@ -2,7 +2,7 @@ import { groq } from "@ai-sdk/groq";
 import { convertToModelMessages, streamText, type UIMessage } from "ai";
 import { z } from "zod";
 
-import { fetchRequirementsBlock } from "@/lib/ai-context";
+import { fetchFullContext } from "@/lib/ai-context";
 import { createClient } from "@/lib/supabase/server";
 
 export const maxDuration = 30;
@@ -55,9 +55,9 @@ export async function POST(req: Request) {
     .single();
   if (!project) return new Response("Not Found", { status: 404 });
 
-  const requirementsBlock = await fetchRequirementsBlock(supabase, projectId, user.id);
+  const context = await fetchFullContext(supabase, projectId, user.id, "guided-setup");
   const stepPrompt = SYSTEM_PROMPTS[step];
-  const system = requirementsBlock ? `${requirementsBlock}\n\n${stepPrompt}` : stepPrompt;
+  const system = context ? `${context}${stepPrompt}` : stepPrompt;
 
   const result = streamText({
     model: groq("llama-3.3-70b-versatile"),

@@ -1,7 +1,17 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
-import type { GuidedSetupFeatures, GuidedSetupIntegrations, GuidedSetupWorkflow } from "./project-types";
+import type {
+  ArchitectureDraft,
+  GuidedSetupFeatures,
+  GuidedSetupIntegrations,
+  GuidedSetupWorkflow,
+  InferredNeeds,
+} from "./project-types";
 import { parseProjectMeta } from "./project-types";
+import { classifyProject } from "./retrieval/classify";
+import { getPhase1Library, getPhase2Library, getPhase3Library } from "./retrieval/libraries";
+
+export type RetrievalPhase = "guided-setup" | "system-design" | "output-pack";
 
 // Derived from canonical project-types. Omit UI-only flags; `constraints` and `stackPreference`
 // are optional here because Zod input schemas from API routes allow undefined for those fields.
@@ -22,6 +32,8 @@ export type ProjectContext = {
   wizardDescription?: string | null;
   appType?: string | null;
   guidedSetup?: PartialGuidedSetup;
+  inferredNeeds?: InferredNeeds | null;
+  architectureDraft?: ArchitectureDraft | null;
 };
 
 export function buildRequirementsBlock(ctx: ProjectContext): string {
@@ -43,6 +55,17 @@ export function buildRequirementsBlock(ctx: ProjectContext): string {
     if (setup.integrations.tools.length) lines.push(`- Integrations: ${setup.integrations.tools.join(", ")}`);
     if (setup.integrations.constraints) lines.push(`- Constraints: ${setup.integrations.constraints}`);
     if (setup.integrations.stackPreference) lines.push(`- Stack Preference: ${setup.integrations.stackPreference}`);
+  }
+  if (ctx.inferredNeeds) {
+    const active = Object.entries(ctx.inferredNeeds)
+      .filter(([, v]) => v)
+      .map(([k]) => k.replace("needs", "").toLowerCase())
+      .join(", ");
+    if (active) lines.push(`- Inferred needs: ${active}`);
+  }
+  if (ctx.architectureDraft) {
+    lines.push(`- Architecture recommendation: ${ctx.architectureDraft.summary}`);
+    lines.push(`- Components: ${ctx.architectureDraft.components.join(", ")}`);
   }
   return lines.join("\n");
 }
@@ -72,6 +95,52 @@ export async function fetchRequirementsBlock(
     wizardDescription: meta.wizard_description,
     appType: meta.app_type,
     guidedSetup: meta.guided_setup ?? undefined,
+    inferredNeeds: meta.inferredNeeds,
+    architectureDraft: meta.architectureDraft,
   });
   return `${block}\n\nUse the above as ground truth about what the user is building.\n---\n\n`;
+}
+
+/**
+ * Fetches project context and injects phase-appropriate architectural guidance.
+ * Use this instead of `fetchRequirementsBlock` in AI routes.
+ */
+export async function fetchFullContext(
+  supabase: SupabaseClient,
+  projectId: string,
+  userId: string,
+  phase: RetrievalPhase,
+): Promise<string> {
+  const { data } = await supabase
+    .from("projects")
+    .select("description")
+    .eq("id", projectId)
+    .eq("owner_id", userId)
+    .single();
+  if (!data?.description) return "";
+
+  const meta = parseProjectMeta(data.description as string | null);
+  const signals = classifyProject(meta);
+
+  let library = "";
+  if (phase === "guided-setup") library = getPhase1Library(signals);
+  else if (phase === "system-design") library = getPhase2Library(signals);
+  else library = getPhase3Library(signals);
+
+  const requirementsBlock = buildRequirementsBlock({
+    wizardDescription: meta.wizard_description,
+    appType: meta.app_type,
+    guidedSetup: meta.guided_setup ?? undefined,
+    inferredNeeds: meta.inferredNeeds,
+    architectureDraft: meta.architectureDraft,
+  });
+
+  const hasContext = meta.wizard_description ?? meta.app_type ?? meta.guided_setup;
+  const reqSection = hasContext
+    ? `${requirementsBlock}\n\nUse the above as ground truth about what the user is building.\n---\n\n`
+    : "";
+
+  const libSection = library ? `${library}\n---\n\n` : "";
+
+  return `${reqSection}${libSection}`;
 }

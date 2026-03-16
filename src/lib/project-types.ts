@@ -89,6 +89,26 @@ export type GuidedSetupData = {
   integrations?: GuidedSetupIntegrations;
 };
 
+export type InferredNeeds = {
+  needsAuth: boolean;
+  needsPayments: boolean;
+  needsFileStorage: boolean;
+  needsAsyncJobs: boolean;
+  needsRealtime: boolean;
+  needsSearch: boolean;
+  needsAdminPanel: boolean;
+  needsNotifications: boolean;
+  needsAiIntegration: boolean;
+  needsExternalApi: boolean;
+};
+
+export type ArchitectureDraft = {
+  style: "monolith" | "modular-monolith" | "microservices" | "serverless";
+  biasMonolith: boolean;
+  components: string[];
+  summary: string;
+};
+
 export type OutputFile = {
   filename: string;
   content: string;
@@ -114,6 +134,8 @@ export type ProjectMeta = {
   task_sprints: TaskSprint[] | null;
   guided_setup: GuidedSetupData | null;
   output_pack: OutputPack | null;
+  inferredNeeds: InferredNeeds | null;
+  architectureDraft: ArchitectureDraft | null;
 };
 
 export const DEFAULT_PROJECT_META: ProjectMeta = {
@@ -130,6 +152,8 @@ export const DEFAULT_PROJECT_META: ProjectMeta = {
   task_sprints: null,
   guided_setup: null,
   output_pack: null,
+  inferredNeeds: null,
+  architectureDraft: null,
 };
 
 export function parseProjectMeta(description: string | null): ProjectMeta {

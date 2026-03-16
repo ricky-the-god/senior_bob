@@ -5,6 +5,8 @@ import { z } from "zod";
 import type { OutputFile } from "@/lib/project-types";
 import { parseProjectMeta } from "@/lib/project-types";
 import { getDiagram } from "@/lib/queries/get-diagram";
+import { classifyProject } from "@/lib/retrieval/classify";
+import { getPhase3Library } from "@/lib/retrieval/libraries";
 import { createClient } from "@/lib/supabase/server";
 
 export const maxDuration = 60;
@@ -76,6 +78,9 @@ export async function POST(req: Request) {
   if (projectError || !project) return new Response("Not Found", { status: 404 });
 
   const meta = parseProjectMeta(project.description ?? null);
+  const signals = classifyProject(meta);
+  const phase3Library = getPhase3Library(signals);
+  const fullSystemPrompt = phase3Library ? `${phase3Library}\n---\n\n${SYSTEM_PROMPT}` : SYSTEM_PROMPT;
 
   // Fetch diagram
   const diagram = await getDiagram(projectId, "system-design");
@@ -134,7 +139,7 @@ Generate the 5 markdown files described in your instructions.`;
 
   const { object } = await generateObject({
     model: groq("openai/gpt-oss-120b"),
-    system: SYSTEM_PROMPT,
+    system: fullSystemPrompt,
     prompt: userMessage,
     schema: ResponseSchema,
   });

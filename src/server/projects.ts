@@ -4,7 +4,16 @@ import { redirect } from "next/navigation";
 
 import { z } from "zod";
 
-import { APP_TYPE_IDS, BACKEND_IDS, INFRA_IDS, type ProjectMeta, USER_SCALE_IDS } from "@/lib/project-types";
+import {
+  APP_TYPE_IDS,
+  BACKEND_IDS,
+  type GuidedSetupData,
+  INFRA_IDS,
+  type ProjectMeta,
+  parseProjectMeta,
+  USER_SCALE_IDS,
+} from "@/lib/project-types";
+import { deriveArchitectureDraft, deriveInferredNeeds } from "@/lib/retrieval/derive";
 
 import { getAuthenticatedUser } from "./auth";
 
@@ -93,6 +102,78 @@ export async function updateProjectMeta(id: string, patch: Partial<ProjectMeta>)
     .update({ description: JSON.stringify(merged) })
     .eq("id", pid)
     .eq("owner_id", user.id);
+  if (error) throw new Error(error.message);
+}
+
+// ─── Guided Setup Schemas ─────────────────────────────────────────────────────
+
+const GuidedSetupWorkflowSchema = z.object({
+  mainGoal: z.string().min(1).max(2000),
+  mainFlow: z.string().min(1).max(2000),
+  completed: z.boolean(),
+  seniorbobSummary: z.string().max(500).optional(),
+});
+
+const GuidedSetupFeaturesSchema = z.object({
+  selected: z.array(z.string()).max(20),
+  custom: z.array(z.string().max(100)).max(10),
+  completed: z.boolean(),
+  seniorbobSummary: z.string().max(500).optional(),
+});
+
+const GuidedSetupIntegrationsSchema = z.object({
+  tools: z.array(z.string().max(50)).max(20),
+  constraints: z.string().max(1000),
+  stackPreference: z.string().max(500),
+  completed: z.boolean(),
+  seniorbobSummary: z.string().max(500).optional(),
+});
+
+const SaveGuidedSetupStepSchema = z.discriminatedUnion("step", [
+  z.object({ step: z.literal("workflow"), data: GuidedSetupWorkflowSchema }),
+  z.object({ step: z.literal("features"), data: GuidedSetupFeaturesSchema }),
+  z.object({ step: z.literal("integrations"), data: GuidedSetupIntegrationsSchema }),
+]);
+
+export async function saveGuidedSetupStep(
+  projectId: string,
+  input: z.infer<typeof SaveGuidedSetupStepSchema>,
+): Promise<void> {
+  const { id: pid } = z.object({ id: z.string().uuid() }).parse({ id: projectId });
+  const parsed = SaveGuidedSetupStepSchema.parse(input);
+  const { supabase, user } = await getAuthenticatedUser();
+
+  const { data } = await supabase.from("projects").select("description").eq("id", pid).eq("owner_id", user.id).single();
+
+  let current: Partial<ProjectMeta> = {};
+  try {
+    if (data?.description) current = JSON.parse(data.description) as Partial<ProjectMeta>;
+  } catch {
+    // malformed — start fresh
+  }
+
+  const currentSetup: GuidedSetupData = current.guided_setup ?? {};
+  const merged: Partial<ProjectMeta> = {
+    ...current,
+    guided_setup: { ...currentSetup, [parsed.step]: parsed.data },
+  };
+
+  let finalMerged = merged;
+  if (parsed.step === "integrations") {
+    const updatedMeta = parseProjectMeta(JSON.stringify(merged));
+    finalMerged = {
+      ...merged,
+      inferredNeeds: deriveInferredNeeds(updatedMeta),
+      architectureDraft: deriveArchitectureDraft(updatedMeta),
+    };
+  }
+
+  const { error } = await supabase
+    .from("projects")
+    .update({ description: JSON.stringify(finalMerged) })
+    .eq("id", pid)
+    .eq("owner_id", user.id);
+
   if (error) throw new Error(error.message);
 }
 
