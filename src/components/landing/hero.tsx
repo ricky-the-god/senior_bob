@@ -54,17 +54,17 @@ export const Hero = () => {
 
             {/* Main headline */}
             <h1 className="mb-6 font-normal text-5xl text-editorial text-zinc-950 leading-[1.1] tracking-tight md:text-6xl lg:text-7xl dark:text-zinc-50">
-              Design systems.
+              AI can write the code.
               <br />
               <span className="bg-gradient-to-r from-primary to-amber-500 bg-clip-text font-normal text-transparent dark:to-amber-300">
-                Generate plans.
+                SeniorBob makes the project buildable.
               </span>
             </h1>
 
             {/* Subheadline */}
             <p className="mb-10 max-w-2xl text-base text-zinc-950/50 leading-relaxed md:text-lg dark:text-zinc-50/50">
-              A visual-first architecture tool for engineers who think in diagrams. Transform your system design into
-              AI-ready implementation plans.
+              Turn vague product ideas into clear requirements, system design, and Claude Code-ready context—so AI can
+              build with structure, not guesswork.
             </p>
 
             {/* CTAs */}
