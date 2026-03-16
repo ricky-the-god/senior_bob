@@ -1,4 +1,4 @@
-import { BookOpen, Folder, Home, type LucideIcon, Search, Trash2, Users } from "lucide-react";
+import { BookOpen, CircleUser, Folder, Home, type LucideIcon, Search, Trash2, Users } from "lucide-react";
 
 export interface NavSubItem {
   title: string;
@@ -77,6 +77,16 @@ export const sidebarItems: NavGroup[] = [
         title: "Trash",
         url: "/dashboard/trash",
         icon: Trash2,
+      },
+    ],
+  },
+  {
+    id: 5,
+    items: [
+      {
+        title: "Account & Billing",
+        url: "/dashboard/account",
+        icon: CircleUser,
       },
     ],
   },

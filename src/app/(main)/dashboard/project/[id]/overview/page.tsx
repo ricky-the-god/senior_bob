@@ -10,6 +10,7 @@ import { DangerZone } from "./_components/danger-zone";
 import { DescriptionSection } from "./_components/description-section";
 import { ProjectHeader } from "./_components/project-header";
 import { ReleasesSection } from "./_components/releases-section";
+import { RequirementsCard } from "./_components/requirements-card";
 import { SprintsSection } from "./_components/sprints-section";
 import { TeamSection } from "./_components/team-section";
 import { TechStackSection } from "./_components/tech-stack-section";
@@ -49,6 +50,10 @@ export default async function OverviewPage({ params }: Props) {
   const meta = parseProjectMeta(project?.description ?? null);
 
   const appType = meta.app_type ? (APP_TYPE_MAP[meta.app_type] ?? null) : null;
+
+  const guidedSetup = meta.guided_setup ?? null;
+  const allGuidedSetupComplete =
+    !!guidedSetup?.workflow?.completed && !!guidedSetup?.features?.completed && !!guidedSetup?.integrations?.completed;
 
   return (
     <div className="flex flex-1 flex-col gap-8 overflow-y-auto p-6 max-w-6xl mx-auto w-full">
@@ -92,15 +97,21 @@ export default async function OverviewPage({ params }: Props) {
         </div>
       </div>
 
-      {/* 2. Snapshot row */}
+      {/* 2. Requirements card */}
+      <RequirementsCard projectId={id} guidedSetup={guidedSetup} allComplete={allGuidedSetupComplete} />
+
+      {/* 3. Snapshot row */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <SnapshotCard label="Stack items" value={meta.tech_stack?.length ?? 0} />
+        <SnapshotCard
+          label="Features"
+          value={(guidedSetup?.features?.selected?.length ?? 0) + (guidedSetup?.features?.custom?.length ?? 0)}
+        />
+        <SnapshotCard label="Integrations" value={guidedSetup?.integrations?.tools?.length ?? 0} />
         <SnapshotCard label="Sprints" value={meta.task_sprints?.length ?? 0} />
-        <SnapshotCard label="Releases" value={meta.releases?.length ?? 0} />
         <SnapshotCard label="Team" value={members.length} />
       </div>
 
-      {/* 3. 2-column grid */}
+      {/* 4. 2-column grid */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         {/* Left column */}
         <div className="space-y-6">
@@ -126,7 +137,7 @@ export default async function OverviewPage({ params }: Props) {
         </div>
       </div>
 
-      {/* 4. Danger Zone */}
+      {/* 5. Danger Zone */}
       {isOwner && (
         <div className="border-t border-border pt-6">
           <DangerZone projectId={id} projectName={project?.name ?? "Project"} />

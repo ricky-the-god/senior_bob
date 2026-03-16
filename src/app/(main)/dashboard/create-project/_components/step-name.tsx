@@ -15,9 +15,8 @@ type Props = {
 };
 
 const PHASE_LABELS: Record<SubmitPhase, string> = {
-  idle: "Create & Generate",
+  idle: "Create Project",
   creating: "Creating project…",
-  generating: "Generating diagram…",
   done: "Done!",
 };
 
@@ -36,7 +35,7 @@ export function StepName({ suggestedName, suggestedNameReason, submitPhase, onSu
   }, [suggestedName]);
 
   const isValid = name.trim().length > 0 && name.trim().length <= 100;
-  const isBusy = submitPhase === "creating" || submitPhase === "generating";
+  const isBusy = submitPhase === "creating";
 
   const applySuggestion = () => {
     setName(suggestedName);

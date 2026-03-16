@@ -36,7 +36,7 @@ export function ProjectNav({ id, projectName }: Props) {
   );
 
   return (
-    <aside className="mr-6 flex w-52 flex-shrink-0 flex-col overflow-y-auto border-border border-r bg-card">
+    <aside className="mr-6 flex w-52 flex-shrink-0 flex-col overflow-hidden border-border border-r bg-card">
       {/* Project header */}
       <div className="flex items-center gap-2 border-border border-b px-3 py-3">
         <div className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded bg-foreground/8">

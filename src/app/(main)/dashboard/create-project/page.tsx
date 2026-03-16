@@ -8,20 +8,14 @@ import { AnimatePresence, motion } from "framer-motion";
 import { ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 
-import type { DiagramPayload } from "@/lib/diagram-types";
-import type { AppTypeId, BackendId, InfraId, UserScaleId, WizardRecommendations } from "@/lib/project-types";
+import type { AppTypeId, WizardRecommendations } from "@/lib/project-types";
 import { DEFAULT_NAMES } from "@/lib/project-types";
-import { saveDiagram } from "@/server/diagrams";
 import { createProjectFromWizard } from "@/server/projects";
 
 import { StepAppType } from "./_components/step-app-type";
-import { StepBackend } from "./_components/step-backend";
 import { StepDescription } from "./_components/step-description";
-import { StepInfra } from "./_components/step-infra";
 import { StepName } from "./_components/step-name";
 import { StepOrigin } from "./_components/step-origin";
-import { StepTechStack } from "./_components/step-tech-stack";
-import { StepUserScale } from "./_components/step-user-scale";
 import type { SubmitPhase } from "./_components/wizard-types";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -30,18 +24,14 @@ type WizardState = {
   description: string;
   app_type: AppTypeId | null;
   is_new_app: boolean | null;
-  tech_stack: string[];
-  user_scale: UserScaleId | null;
-  infra: InfraId | null;
-  backend: BackendId | null;
   name: string;
   recommendations: WizardRecommendations | null;
   recommendationLoading: boolean;
 };
 
-type Step = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8;
+type Step = 1 | 2 | 3 | 4;
 
-const TOTAL_STEPS = 8;
+const TOTAL_STEPS = 4;
 const FALLBACK_PROJECT_NAME = "My Project";
 
 // ─── Slide Variants ───────────────────────────────────────────────────────────
@@ -80,24 +70,6 @@ function WizardProgress({ step }: { step: Step }) {
   );
 }
 
-// ─── Prompt builder ───────────────────────────────────────────────────────────
-
-function buildDiagramPrompt(state: WizardState): string {
-  const lines = [
-    `Generate a complete system design diagram for the following project:`,
-    `Name: ${state.name}`,
-    `Description: ${state.description}`,
-    `App type: ${state.app_type ?? "unspecified"}`,
-    `New app: ${state.is_new_app === null ? "unspecified" : state.is_new_app ? "yes" : "no"}`,
-    `Tech stack: ${state.tech_stack.length > 0 ? state.tech_stack.join(", ") : "unspecified"}`,
-    `Expected scale: ${state.user_scale ?? "unspecified"}`,
-    `Infrastructure: ${state.infra ?? "unspecified"}`,
-    `Backend: ${state.backend ?? "unspecified"}`,
-    `Include all major components: clients, API gateway, services, databases, caches, and external integrations.`,
-  ];
-  return lines.join("\n");
-}
-
 // ─── Wizard Shell ─────────────────────────────────────────────────────────────
 
 function OnboardingWizard() {
@@ -108,10 +80,6 @@ function OnboardingWizard() {
     description: "",
     app_type: null,
     is_new_app: null,
-    tech_stack: [],
-    user_scale: null,
-    infra: null,
-    backend: null,
     name: "",
     recommendations: null,
     recommendationLoading: false,
@@ -141,9 +109,6 @@ function OnboardingWizard() {
         ...s,
         recommendations: recs,
         recommendationLoading: false,
-        // Pre-fill tech stack with recommendations
-        tech_stack: s.tech_stack.length === 0 ? recs.tech_stack : s.tech_stack,
-        // Pre-fill name if not yet set
         name: s.name === "" ? recs.suggested_name : s.name,
       }));
     } catch {
@@ -172,23 +137,6 @@ function OnboardingWizard() {
     goTo(4);
   };
 
-  const handleTechStack = () => goTo(5);
-
-  const handleUserScale = (user_scale: UserScaleId) => {
-    setState((s) => ({ ...s, user_scale }));
-    goTo(6);
-  };
-
-  const handleInfra = (infra: InfraId) => {
-    setState((s) => ({ ...s, infra }));
-    goTo(7);
-  };
-
-  const handleBackend = (backend: BackendId) => {
-    setState((s) => ({ ...s, backend }));
-    goTo(8);
-  };
-
   const handleFinalSubmit = async (name: string) => {
     setSubmitPhase("creating");
     try {
@@ -196,31 +144,10 @@ function OnboardingWizard() {
         name,
         app_type: state.app_type ?? undefined,
         is_new_app: state.is_new_app ?? undefined,
-        user_scale: state.user_scale ?? undefined,
-        infra: state.infra ?? undefined,
-        backend: state.backend ?? undefined,
-        tech_stack: state.tech_stack.length > 0 ? state.tech_stack : undefined,
         wizard_description: state.description || undefined,
       });
-
-      setSubmitPhase("generating");
-      try {
-        const prompt = buildDiagramPrompt({ ...state, name });
-        const res = await fetch("/api/diagram-ai/generate", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ prompt }),
-        });
-        if (res.ok) {
-          const diagram = (await res.json()) as DiagramPayload;
-          await saveDiagram(id, "system-design", diagram);
-        }
-      } catch {
-        // Diagram generation is best-effort — don't block redirect
-      }
-
       setSubmitPhase("done");
-      router.push(`/dashboard/project/${id}/system-design`);
+      router.push(`/dashboard/project/${id}/guided-setup`);
     } catch (err) {
       toast.error("Failed to create project", {
         description: err instanceof Error ? err.message : "Unknown error",
@@ -295,44 +222,6 @@ function OnboardingWizard() {
             )}
 
             {step === 4 && (
-              <StepTechStack
-                selected={state.tech_stack}
-                recommended={recs?.tech_stack ?? []}
-                recommendedReason={recs?.tech_stack_reason}
-                recommendationLoading={state.recommendationLoading}
-                onChange={(tech_stack) => setState((s) => ({ ...s, tech_stack }))}
-                onContinue={handleTechStack}
-              />
-            )}
-
-            {step === 5 && (
-              <StepUserScale
-                recommended={recs?.user_scale ?? null}
-                recommendedReason={recs?.user_scale_reason}
-                recommendationLoading={state.recommendationLoading}
-                onSelect={handleUserScale}
-              />
-            )}
-
-            {step === 6 && (
-              <StepInfra
-                recommended={recs?.infra ?? null}
-                recommendedReason={recs?.infra_reason}
-                recommendationLoading={state.recommendationLoading}
-                onSelect={handleInfra}
-              />
-            )}
-
-            {step === 7 && (
-              <StepBackend
-                recommended={recs?.backend ?? null}
-                recommendedReason={recs?.backend_reason}
-                recommendationLoading={state.recommendationLoading}
-                onSelect={handleBackend}
-              />
-            )}
-
-            {step === 8 && (
               <StepName
                 suggestedName={recs?.suggested_name ?? state.name}
                 suggestedNameReason={recs?.suggested_name_reason}

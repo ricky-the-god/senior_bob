@@ -1,4 +1,4 @@
-export type SubmitPhase = "idle" | "creating" | "generating" | "done";
+export type SubmitPhase = "idle" | "creating" | "done";
 
 export type RecommendationProps<T> = {
   recommended: T | null;
