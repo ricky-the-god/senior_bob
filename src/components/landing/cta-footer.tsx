@@ -55,50 +55,6 @@ export const CTAFooter = () => {
           </Button>
         </div>
       </div>
-
-      {/* Footer */}
-      <footer className="relative z-10 mx-auto mt-32 max-w-7xl border-zinc-950/10 border-t pt-12 dark:border-zinc-50/10">
-        <div className="flex flex-col items-center justify-between gap-6 md:flex-row">
-          {/* Logo */}
-          <div className="flex items-center gap-3">
-            <div className="flex size-7 items-center justify-center rounded-lg border border-zinc-950/10 bg-zinc-950/5 dark:border-zinc-50/10 dark:bg-zinc-50/5">
-              <svg
-                aria-hidden="true"
-                className="size-3.5 text-primary"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-                strokeWidth={1.5}
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z"
-                />
-              </svg>
-            </div>
-            <span className="font-mono-tight text-xs text-zinc-950/60 dark:text-zinc-50/60">seniorbob</span>
-          </div>
-
-          {/* Links */}
-          <div className="flex items-center gap-6 font-mono-tight text-xs text-zinc-950/40 dark:text-zinc-50/40">
-            <Link href="#" className="transition-colors hover:text-zinc-950/80 dark:hover:text-zinc-50/80">
-              Privacy
-            </Link>
-            <Link href="#" className="transition-colors hover:text-zinc-950/80 dark:hover:text-zinc-50/80">
-              Terms
-            </Link>
-            <Link href="#" className="transition-colors hover:text-zinc-950/80 dark:hover:text-zinc-50/80">
-              Contact
-            </Link>
-          </div>
-
-          {/* Copyright */}
-          <p className="font-mono-tight text-xs text-zinc-950/30 dark:text-zinc-50/30">
-            &copy; {new Date().getFullYear()} SeniorBob
-          </p>
-        </div>
-      </footer>
     </section>
   );
 };

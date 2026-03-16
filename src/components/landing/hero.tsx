@@ -6,7 +6,8 @@ import Link from "next/link";
 
 import { AnimatePresence, motion } from "framer-motion";
 
-import { SignupForm } from "@/app/(main)/auth/_components/v3";
+import { AuthCard, SignupForm } from "@/app/(main)/auth/_components/v3";
+import { AtcShader } from "@/components/ui/atc-shader";
 import { Button } from "@/components/ui/button";
 import { ShimmerButton } from "@/components/ui/shimmer-button";
 
@@ -94,7 +95,7 @@ export const Hero = () => {
                         shimmerDuration="2.5s"
                         onClick={() => setIsExpanded(true)}
                       >
-                        Get started
+                        Get started free
                         <svg
                           aria-hidden="true"
                           className="ml-2 size-4"
@@ -170,9 +171,11 @@ export const Hero = () => {
             layoutId="hero-expand"
             style={{ borderRadius: 20 }}
             animate={{ borderRadius: 0 }}
-            className="fixed inset-0 z-50 flex flex-col items-center justify-center overflow-y-auto bg-zinc-950"
+            className="dark fixed inset-0 z-50 flex flex-col items-center justify-center overflow-y-auto bg-zinc-950"
             transition={{ type: "spring", bounce: 0, duration: 0.5 }}
           >
+            <AtcShader />
+
             {/* Close button */}
             <button
               type="button"
@@ -190,9 +193,11 @@ export const Hero = () => {
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3, duration: 0.4 }}
-              className="w-full max-w-md px-6 py-12"
+              className="relative z-10 flex w-full justify-center px-6 py-12"
             >
-              <SignupForm />
+              <AuthCard>
+                <SignupForm />
+              </AuthCard>
             </motion.div>
           </motion.div>
         )}
