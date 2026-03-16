@@ -1,9 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { useRouter } from "next/navigation";
 
+import { type UIMessage, useChat } from "@ai-sdk/react";
+import { DefaultChatTransport } from "ai";
 import { ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 
@@ -18,99 +20,98 @@ type Props = {
   initialData: GuidedSetupWorkflow | null;
 };
 
-type Phase = "waiting_goal" | "waiting_flow" | "complete";
-
-function makeId() {
-  return crypto.randomUUID();
+function getMessageText(msg: UIMessage): string {
+  return msg.parts.map((p) => (p.type === "text" ? p.text : "")).join("");
 }
+
+function toDisplayMessages(msgs: UIMessage[]): ChatMessage[] {
+  return msgs.map((m) => ({
+    id: m.id,
+    role: m.role === "assistant" ? "bot" : "user",
+    text: getMessageText(m).replace("[[READY]]", "").trim(),
+  }));
+}
+
+const delay = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
+
+const INITIAL_BOT_MESSAGE: UIMessage = {
+  id: "init",
+  role: "assistant",
+  parts: [{ type: "text", text: "What does your app help users do? Describe the main problem it solves." }],
+};
 
 export function WorkflowChat({ projectId, initialData }: Props) {
   const router = useRouter();
+  const [inputValue, setInputValue] = useState("");
+  const [extracting, setExtracting] = useState(false);
+  const [isComplete, setIsComplete] = useState(() => !!initialData?.completed);
+  const readyFiredRef = useRef(false);
 
-  const [messages, setMessages] = useState<ChatMessage[]>(() => {
-    if (initialData?.completed) {
-      return [
-        { id: makeId(), role: "bot", text: "What does your app help users do? Describe the main problem it solves." },
-        { id: makeId(), role: "user", text: initialData.mainGoal },
-        {
-          id: makeId(),
-          role: "bot",
-          text: `Got it — sounds like you're building something to help with: "${initialData.mainGoal}". Walk me through the main flow — what does a user do from start to finish?`,
+  const transport = useMemo(
+    () =>
+      new DefaultChatTransport({
+        api: "/api/guided-setup/chat",
+        fetch: async (url, options) => {
+          const body = JSON.parse((options?.body as string) ?? "{}") as Record<string, unknown>;
+          return fetch(url, {
+            ...options,
+            body: JSON.stringify({ ...body, step: "workflow", projectId }),
+          });
         },
-        { id: makeId(), role: "user", text: initialData.mainFlow },
-        {
-          id: makeId(),
-          role: "bot",
-          text: `Here's what I've captured:\n\n**Goal:** ${initialData.mainGoal}\n**Flow:** ${initialData.mainFlow}\n\nThis gives us a solid foundation.`,
-        },
-        { id: makeId(), role: "bot", text: "Step 1 complete. Let's define your core features next →" },
-      ];
-    }
-    return [
-      {
-        id: makeId(),
-        role: "bot",
-        text: "What does your app help users do? Describe the main problem it solves.",
-      },
-    ];
+      }),
+    [projectId],
+  );
+
+  const { messages, sendMessage, status } = useChat({
+    transport,
+    messages: [INITIAL_BOT_MESSAGE],
   });
 
-  const [phase, setPhase] = useState<Phase>(() => (initialData?.completed ? "complete" : "waiting_goal"));
-  const [mainGoal, setMainGoal] = useState(initialData?.mainGoal ?? "");
-  const [inputValue, setInputValue] = useState("");
-  const [saving, setSaving] = useState(false);
-
-  const addMessage = (msg: Omit<ChatMessage, "id">) => {
-    setMessages((prev) => [...prev, { ...msg, id: makeId() }]);
-  };
-
-  const handleSubmit = async () => {
-    const text = inputValue.trim();
-    if (!text || saving) return;
-    setInputValue("");
-    addMessage({ role: "user", text });
-
-    if (phase === "waiting_goal") {
-      setMainGoal(text);
-      setPhase("waiting_flow");
-      addMessage({
-        role: "bot",
-        text: `Got it — sounds like you're building something to help with: "${text}". Walk me through the main flow — what does a user do from start to finish?`,
-      });
-      return;
-    }
-
-    if (phase === "waiting_flow") {
-      const mainFlow = text;
-      setSaving(true);
-      addMessage({
-        role: "bot",
-        text: `Here's what I've captured:\n\n**Goal:** ${mainGoal}\n**Flow:** ${mainFlow}\n\nThis gives us a solid foundation.`,
-      });
-
+  const handleExtractAndSave = useCallback(
+    async (snapshot: UIMessage[]) => {
+      setExtracting(true);
       try {
+        const res = await fetch("/api/guided-setup/extract", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ messages: snapshot, step: "workflow", projectId }),
+        });
+        if (!res.ok) throw new Error("Extract failed");
+        const data = (await res.json()) as { mainGoal: string; mainFlow: string };
         await saveGuidedSetupStep(projectId, {
           step: "workflow",
-          data: { mainGoal, mainFlow, completed: true },
+          data: { ...data, completed: true },
         });
-        setPhase("complete");
-        addMessage({ role: "bot", text: "Step 1 complete. Let's define your core features next →" });
+        setIsComplete(true);
+        await delay(600);
         router.push(`/dashboard/project/${projectId}/guided-setup`);
       } catch (err) {
         toast.error("Failed to save", {
           description: err instanceof Error ? err.message : "Unknown error",
         });
+        readyFiredRef.current = false;
       } finally {
-        setSaving(false);
+        setExtracting(false);
       }
-    }
-  };
+    },
+    [projectId, router],
+  );
 
-  if (phase === "complete") {
+  useEffect(() => {
+    if (readyFiredRef.current || extracting || isComplete) return;
+    const last = [...messages].reverse().find((m) => m.role === "assistant");
+    if (!last) return;
+    const text = getMessageText(last);
+    if (!text.includes("[[READY]]")) return;
+    readyFiredRef.current = true;
+    void handleExtractAndSave(messages);
+  }, [messages, extracting, isComplete, handleExtractAndSave]);
+
+  if (isComplete) {
     return (
       <div className="flex flex-1 flex-col overflow-hidden">
         <StepShell
-          messages={messages}
+          messages={toDisplayMessages(messages)}
           inputValue=""
           onInputChange={() => undefined}
           onSubmit={() => undefined}
@@ -132,14 +133,20 @@ export function WorkflowChat({ projectId, initialData }: Props) {
 
   return (
     <StepShell
-      messages={messages}
+      messages={toDisplayMessages(messages)}
       inputValue={inputValue}
       onInputChange={setInputValue}
-      onSubmit={() => void handleSubmit()}
-      inputPlaceholder={
-        phase === "waiting_goal" ? "Describe the problem your app solves…" : "Walk through the main user flow…"
-      }
-      inputDisabled={saving}
+      onSubmit={() => {
+        sendMessage({ text: inputValue });
+        setInputValue("");
+      }}
+      botTyping={status === "streaming" || status === "submitted" || extracting}
+      inputDisabled={status === "streaming" || status === "submitted" || extracting || isComplete}
+      inputPlaceholders={[
+        "Describe what your app helps users do...",
+        "What problem does it solve?",
+        "Who needs it, and why?",
+      ]}
     />
   );
 }

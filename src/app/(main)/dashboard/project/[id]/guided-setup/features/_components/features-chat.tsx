@@ -1,9 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { useRouter } from "next/navigation";
 
+import { type UIMessage, useChat } from "@ai-sdk/react";
+import { DefaultChatTransport } from "ai";
 import { ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 
@@ -20,122 +22,127 @@ type Props = {
   initialData: GuidedSetupFeatures | null;
 };
 
-type Phase = "selecting" | "custom_input" | "complete";
-
-function makeId() {
-  return crypto.randomUUID();
+function getMessageText(msg: UIMessage): string {
+  return msg.parts.map((p) => (p.type === "text" ? p.text : "")).join("");
 }
+
+function toDisplayMessages(msgs: UIMessage[]): ChatMessage[] {
+  return msgs.map((m) => ({
+    id: m.id,
+    role: m.role === "assistant" ? "bot" : "user",
+    text: getMessageText(m).replace("[[READY]]", "").trim(),
+  }));
+}
+
+const delay = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
+
+const INITIAL_BOT_MESSAGE: UIMessage = {
+  id: "init",
+  role: "assistant",
+  parts: [
+    {
+      type: "text",
+      text: "Based on your workflow, which core features does your product need? Select all that apply, or describe them below.",
+    },
+  ],
+};
 
 export function FeaturesChat({ projectId, initialData }: Props) {
   const router = useRouter();
+  const [inputValue, setInputValue] = useState("");
+  const [extracting, setExtracting] = useState(false);
+  const [isComplete, setIsComplete] = useState(() => !!initialData?.completed);
+  const [chipsSent, setChipsSent] = useState(false);
+  const [selectedFeatures, setSelectedFeatures] = useState<string[]>([]);
+  const readyFiredRef = useRef(false);
 
-  const [messages, setMessages] = useState<ChatMessage[]>(() => {
-    if (initialData?.completed) {
-      const all = [...initialData.selected, ...initialData.custom];
-      return [
-        {
-          id: makeId(),
-          role: "bot",
-          text: "Based on your workflow, which core features does your product need? Select all that apply.",
+  const transport = useMemo(
+    () =>
+      new DefaultChatTransport({
+        api: "/api/guided-setup/chat",
+        fetch: async (url, options) => {
+          const body = JSON.parse((options?.body as string) ?? "{}") as Record<string, unknown>;
+          return fetch(url, {
+            ...options,
+            body: JSON.stringify({ ...body, step: "features", projectId }),
+          });
         },
-        { id: makeId(), role: "user", text: initialData.selected.join(", ") },
-        { id: makeId(), role: "bot", text: "Got it. Anything not on the list? Add custom features below, or skip." },
-        ...(initialData.custom.length > 0
-          ? [{ id: makeId(), role: "user" as const, text: initialData.custom.join(", ") }]
-          : [{ id: makeId(), role: "user" as const, text: "(none)" }]),
-        {
-          id: makeId(),
-          role: "bot",
-          text: `Your feature set: ${all.join(", ")}. I'll use this to shape the architecture.`,
-        },
-        { id: makeId(), role: "bot", text: "Step 2 complete. Now let's capture your integrations →" },
-      ];
-    }
-    return [
-      {
-        id: makeId(),
-        role: "bot",
-        text: "Based on your workflow, which core features does your product need? Select all that apply.",
-      },
-    ];
+      }),
+    [projectId],
+  );
+
+  const { messages, sendMessage, status } = useChat({
+    transport,
+    messages: [INITIAL_BOT_MESSAGE],
   });
 
-  const [phase, setPhase] = useState<Phase>(() => (initialData?.completed ? "complete" : "selecting"));
-  const [selectedFeatures, setSelectedFeatures] = useState<string[]>(initialData?.selected ?? []);
-  const [inputValue, setInputValue] = useState("");
-  const [saving, setSaving] = useState(false);
+  const handleExtractAndSave = useCallback(
+    async (snapshot: UIMessage[]) => {
+      setExtracting(true);
+      try {
+        const res = await fetch("/api/guided-setup/extract", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ messages: snapshot, step: "features", projectId }),
+        });
+        if (!res.ok) throw new Error("Extract failed");
+        const data = (await res.json()) as { selected: string[]; custom: string[] };
+        await saveGuidedSetupStep(projectId, {
+          step: "features",
+          data: { ...data, completed: true },
+        });
+        setIsComplete(true);
+        await delay(600);
+        router.push(`/dashboard/project/${projectId}/guided-setup`);
+      } catch (err) {
+        toast.error("Failed to save", {
+          description: err instanceof Error ? err.message : "Unknown error",
+        });
+        readyFiredRef.current = false;
+      } finally {
+        setExtracting(false);
+      }
+    },
+    [projectId, router],
+  );
 
-  const addMessage = (msg: Omit<ChatMessage, "id">) => {
-    setMessages((prev) => [...prev, { ...msg, id: makeId() }]);
-  };
+  useEffect(() => {
+    if (readyFiredRef.current || extracting || isComplete) return;
+    const last = [...messages].reverse().find((m) => m.role === "assistant");
+    if (!last) return;
+    const text = getMessageText(last);
+    if (!text.includes("[[READY]]")) return;
+    readyFiredRef.current = true;
+    void handleExtractAndSave(messages);
+  }, [messages, extracting, isComplete, handleExtractAndSave]);
 
   const handleChipSelect = (v: string) => {
     setSelectedFeatures((prev) => (prev.includes(v) ? prev.filter((x) => x !== v) : [...prev, v]));
   };
 
   const handleChipConfirm = () => {
-    addMessage({ role: "user", text: selectedFeatures.join(", ") });
-    setPhase("custom_input");
-    addMessage({ role: "bot", text: "Got it. Anything not on the list? Add custom features below, or skip." });
-  };
-
-  const handleCustomSubmit = async () => {
-    const customText = inputValue.trim();
-    const custom = customText
-      ? customText
-          .split(",")
-          .map((s) => s.trim())
-          .filter(Boolean)
-      : [];
-
-    if (selectedFeatures.length === 0 && custom.length === 0) {
-      toast.error("Select at least one feature or add a custom one.");
-      return;
-    }
-
-    addMessage({ role: "user", text: customText || "(none)" });
-    setSaving(true);
-
-    const all = [...selectedFeatures, ...custom];
-    addMessage({
-      role: "bot",
-      text: `Your feature set: ${all.join(", ")}. I'll use this to shape the architecture.`,
-    });
-
-    try {
-      await saveGuidedSetupStep(projectId, {
-        step: "features",
-        data: { selected: selectedFeatures, custom, completed: true },
-      });
-      setPhase("complete");
-      addMessage({ role: "bot", text: "Step 2 complete. Now let's capture your integrations →" });
-      router.push(`/dashboard/project/${projectId}/guided-setup`);
-    } catch (err) {
-      toast.error("Failed to save", {
-        description: err instanceof Error ? err.message : "Unknown error",
-      });
-    } finally {
-      setSaving(false);
-    }
+    if (selectedFeatures.length === 0) return;
+    setChipsSent(true);
+    sendMessage({ text: selectedFeatures.join(", ") });
   };
 
   const chips =
-    phase === "selecting" ? (
+    !chipsSent && messages.length <= 1 ? (
       <AnswerChips
         options={[...FEATURE_OPTIONS]}
         selected={selectedFeatures}
         onSelect={handleChipSelect}
         multiSelect
         onConfirm={handleChipConfirm}
-        disabled={saving}
+        disabled={status === "streaming" || status === "submitted" || extracting}
       />
     ) : null;
 
-  if (phase === "complete") {
+  if (isComplete) {
     return (
       <div className="flex flex-1 flex-col overflow-hidden">
         <StepShell
-          messages={messages}
+          messages={toDisplayMessages(messages)}
           inputValue=""
           onInputChange={() => undefined}
           onSubmit={() => undefined}
@@ -157,15 +164,21 @@ export function FeaturesChat({ projectId, initialData }: Props) {
 
   return (
     <StepShell
-      messages={messages}
+      messages={toDisplayMessages(messages)}
       chips={chips}
       inputValue={inputValue}
       onInputChange={setInputValue}
-      onSubmit={() => void handleCustomSubmit()}
-      inputPlaceholder={
-        phase === "custom_input" ? "Add custom features (comma-separated), or leave empty to skip…" : ""
-      }
-      inputDisabled={saving || phase === "selecting"}
+      onSubmit={() => {
+        sendMessage({ text: inputValue });
+        setInputValue("");
+      }}
+      botTyping={status === "streaming" || status === "submitted" || extracting}
+      inputDisabled={status === "streaming" || status === "submitted" || extracting || isComplete}
+      inputPlaceholders={[
+        "Describe a feature not in the list above...",
+        "What else should users be able to do?",
+        "Any feature unique to your product?",
+      ]}
     />
   );
 }

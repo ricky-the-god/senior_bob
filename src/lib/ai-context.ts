@@ -1,14 +1,16 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
+import type { GuidedSetupFeatures, GuidedSetupIntegrations, GuidedSetupWorkflow } from "./project-types";
 import { parseProjectMeta } from "./project-types";
 
-// Intentional subset of GuidedSetupData — omits the UI-only `completed` flag so this type
-// is compatible with both the full ProjectMeta (server-fetched) and Zod-parsed API payloads
-// (which never include `completed`). GuidedSetupData cannot be used directly here because
-// its sub-types require `completed: boolean`.
-type SetupWorkflow = { mainGoal: string; mainFlow: string };
-type SetupFeatures = { selected: string[]; custom: string[] };
-type SetupIntegrations = { tools: string[]; constraints?: string | null; stackPreference?: string | null };
+// Derived from canonical project-types. Omit UI-only flags; `constraints` and `stackPreference`
+// are optional here because Zod input schemas from API routes allow undefined for those fields.
+type SetupWorkflow = Pick<GuidedSetupWorkflow, "mainGoal" | "mainFlow">;
+type SetupFeatures = Pick<GuidedSetupFeatures, "selected" | "custom">;
+type SetupIntegrations = Pick<GuidedSetupIntegrations, "tools"> & {
+  constraints?: string | null;
+  stackPreference?: string | null;
+};
 
 export type PartialGuidedSetup = {
   workflow?: SetupWorkflow;
@@ -16,17 +18,28 @@ export type PartialGuidedSetup = {
   integrations?: SetupIntegrations;
 };
 
-export function buildRequirementsBlock(setup: PartialGuidedSetup): string {
-  const lines: string[] = ["## Project Requirements"];
-  if (setup.workflow) {
+export type ProjectContext = {
+  wizardDescription?: string | null;
+  appType?: string | null;
+  guidedSetup?: PartialGuidedSetup;
+};
+
+export function buildRequirementsBlock(ctx: ProjectContext): string {
+  const lines: string[] = ["## Project Context"];
+
+  if (ctx.wizardDescription) lines.push(`- App Description: ${ctx.wizardDescription}`);
+  if (ctx.appType) lines.push(`- App Type: ${ctx.appType}`);
+
+  const setup = ctx.guidedSetup;
+  if (setup?.workflow) {
     lines.push(`- Main Goal: ${setup.workflow.mainGoal}`);
     lines.push(`- Primary Flow: ${setup.workflow.mainFlow}`);
   }
-  if (setup.features) {
+  if (setup?.features) {
     const all = [...setup.features.selected, ...setup.features.custom];
     if (all.length) lines.push(`- Features: ${all.join(", ")}`);
   }
-  if (setup.integrations) {
+  if (setup?.integrations) {
     if (setup.integrations.tools.length) lines.push(`- Integrations: ${setup.integrations.tools.join(", ")}`);
     if (setup.integrations.constraints) lines.push(`- Constraints: ${setup.integrations.constraints}`);
     if (setup.integrations.stackPreference) lines.push(`- Stack Preference: ${setup.integrations.stackPreference}`);
@@ -51,6 +64,14 @@ export async function fetchRequirementsBlock(
     .single();
   if (!data?.description) return "";
   const meta = parseProjectMeta(data.description as string | null);
-  if (!meta.guided_setup) return "";
-  return `${buildRequirementsBlock(meta.guided_setup)}\n\nUse these requirements as ground truth when designing the architecture.\n---\n\n`;
+
+  const hasContext = meta.wizard_description ?? meta.app_type ?? meta.guided_setup;
+  if (!hasContext) return "";
+
+  const block = buildRequirementsBlock({
+    wizardDescription: meta.wizard_description,
+    appType: meta.app_type,
+    guidedSetup: meta.guided_setup ?? undefined,
+  });
+  return `${block}\n\nUse the above as ground truth about what the user is building.\n---\n\n`;
 }

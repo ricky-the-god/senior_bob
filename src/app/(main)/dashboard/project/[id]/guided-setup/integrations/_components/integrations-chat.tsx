@@ -1,9 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { useRouter } from "next/navigation";
 
+import { type UIMessage, useChat } from "@ai-sdk/react";
+import { DefaultChatTransport } from "ai";
 import { ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 
@@ -20,148 +22,131 @@ type Props = {
   initialData: GuidedSetupIntegrations | null;
 };
 
-type Phase = "selecting_tools" | "constraints_input" | "stack_input" | "complete";
-
-function makeId() {
-  return crypto.randomUUID();
+function getMessageText(msg: UIMessage): string {
+  return msg.parts.map((p) => (p.type === "text" ? p.text : "")).join("");
 }
+
+function toDisplayMessages(msgs: UIMessage[]): ChatMessage[] {
+  return msgs.map((m) => ({
+    id: m.id,
+    role: m.role === "assistant" ? "bot" : "user",
+    text: getMessageText(m).replace("[[READY]]", "").trim(),
+  }));
+}
+
+const delay = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
+
+const INITIAL_BOT_MESSAGE: UIMessage = {
+  id: "init",
+  role: "assistant",
+  parts: [
+    {
+      type: "text",
+      text: "Which external tools or services will you connect to? Select from the list or describe them below.",
+    },
+  ],
+};
 
 export function IntegrationsChat({ projectId, initialData }: Props) {
   const router = useRouter();
+  const [inputValue, setInputValue] = useState("");
+  const [extracting, setExtracting] = useState(false);
+  const [isComplete, setIsComplete] = useState(() => !!initialData?.completed);
+  const [chipsSent, setChipsSent] = useState(false);
+  const [selectedTools, setSelectedTools] = useState<string[]>([]);
+  const readyFiredRef = useRef(false);
 
-  const [messages, setMessages] = useState<ChatMessage[]>(() => {
-    if (initialData?.completed) {
-      return [
-        { id: makeId(), role: "bot", text: "Which external tools or services will you connect to?" },
-        { id: makeId(), role: "user", text: initialData.tools.length > 0 ? initialData.tools.join(", ") : "(none)" },
-        {
-          id: makeId(),
-          role: "bot",
-          text: "Any constraints I should know about? (hosting requirements, compliance, budget limits)",
+  const transport = useMemo(
+    () =>
+      new DefaultChatTransport({
+        api: "/api/guided-setup/chat",
+        fetch: async (url, options) => {
+          const body = JSON.parse((options?.body as string) ?? "{}") as Record<string, unknown>;
+          return fetch(url, {
+            ...options,
+            body: JSON.stringify({ ...body, step: "integrations", projectId }),
+          });
         },
-        { id: makeId(), role: "user", text: initialData.constraints || "(none)" },
-        { id: makeId(), role: "bot", text: "Any strong stack preferences? (e.g. Next.js + Supabase)" },
-        { id: makeId(), role: "user", text: initialData.stackPreference || "(none)" },
-        {
-          id: makeId(),
-          role: "bot",
-          text: "Guided Setup complete! 🎉 You've defined your workflow, features, and constraints. SeniorBob has everything needed to generate your architecture.",
-        },
-      ];
-    }
-    return [
-      {
-        id: makeId(),
-        role: "bot",
-        text: "Which external tools or services will you connect to?",
-      },
-    ];
+      }),
+    [projectId],
+  );
+
+  const { messages, sendMessage, status } = useChat({
+    transport,
+    messages: [INITIAL_BOT_MESSAGE],
   });
 
-  const [phase, setPhase] = useState<Phase>(() => (initialData?.completed ? "complete" : "selecting_tools"));
-  const [selectedTools, setSelectedTools] = useState<string[]>(initialData?.tools ?? []);
-  const [constraints, setConstraints] = useState(initialData?.constraints ?? "");
-  const [inputValue, setInputValue] = useState("");
-  const [saving, setSaving] = useState(false);
+  const handleExtractAndSave = useCallback(
+    async (snapshot: UIMessage[]) => {
+      setExtracting(true);
+      try {
+        const res = await fetch("/api/guided-setup/extract", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ messages: snapshot, step: "integrations", projectId }),
+        });
+        if (!res.ok) throw new Error("Extract failed");
+        const data = (await res.json()) as { tools: string[]; constraints: string; stackPreference: string };
+        await saveGuidedSetupStep(projectId, {
+          step: "integrations",
+          data: { ...data, completed: true },
+        });
+        setIsComplete(true);
+        await delay(600);
+        router.push(`/dashboard/project/${projectId}/guided-setup`);
+      } catch (err) {
+        toast.error("Failed to save", {
+          description: err instanceof Error ? err.message : "Unknown error",
+        });
+        readyFiredRef.current = false;
+      } finally {
+        setExtracting(false);
+      }
+    },
+    [projectId, router],
+  );
 
-  const addMessage = (msg: Omit<ChatMessage, "id">) => {
-    setMessages((prev) => [...prev, { ...msg, id: makeId() }]);
-  };
+  useEffect(() => {
+    if (readyFiredRef.current || extracting || isComplete) return;
+    const last = [...messages].reverse().find((m) => m.role === "assistant");
+    if (!last) return;
+    const text = getMessageText(last);
+    if (!text.includes("[[READY]]")) return;
+    readyFiredRef.current = true;
+    void handleExtractAndSave(messages);
+  }, [messages, extracting, isComplete, handleExtractAndSave]);
 
   const handleChipSelect = (v: string) => {
     setSelectedTools((prev) => (prev.includes(v) ? prev.filter((x) => x !== v) : [...prev, v]));
   };
 
   const handleToolsConfirm = () => {
-    addMessage({ role: "user", text: selectedTools.length > 0 ? selectedTools.join(", ") : "(none)" });
-    setPhase("constraints_input");
-    addMessage({
-      role: "bot",
-      text: "Any constraints I should know about? (hosting requirements, compliance, budget limits)",
-    });
-  };
-
-  const handleSubmit = async () => {
-    const text = inputValue.trim();
-    setInputValue("");
-
-    if (phase === "constraints_input") {
-      setConstraints(text);
-      addMessage({ role: "user", text: text || "(none)" });
-      setPhase("stack_input");
-      addMessage({ role: "bot", text: "Any strong stack preferences? (e.g. Next.js + Supabase)" });
-      return;
-    }
-
-    if (phase === "stack_input") {
-      const stackPreference = text;
-      addMessage({ role: "user", text: text || "(none)" });
-      setSaving(true);
-
-      try {
-        await saveGuidedSetupStep(projectId, {
-          step: "integrations",
-          data: { tools: selectedTools, constraints, stackPreference, completed: true },
-        });
-        setPhase("complete");
-        addMessage({
-          role: "bot",
-          text: "Guided Setup complete! You've defined your workflow, features, and constraints. SeniorBob has everything needed to generate your architecture.",
-        });
-      } catch (err) {
-        toast.error("Failed to save", {
-          description: err instanceof Error ? err.message : "Unknown error",
-        });
-      } finally {
-        setSaving(false);
-      }
-    }
+    setChipsSent(true);
+    sendMessage({ text: selectedTools.length > 0 ? selectedTools.join(", ") : "none" });
   };
 
   const chips =
-    phase === "selecting_tools" ? (
+    !chipsSent && messages.length <= 1 ? (
       <AnswerChips
         options={[...TOOL_OPTIONS]}
         selected={selectedTools}
         onSelect={handleChipSelect}
         multiSelect
         onConfirm={handleToolsConfirm}
-        disabled={saving}
+        disabled={status === "streaming" || status === "submitted" || extracting}
       />
     ) : null;
 
-  const inputDisabled = saving || phase === "selecting_tools" || phase === "complete";
-
-  const placeholder =
-    phase === "constraints_input"
-      ? "Any constraints? (or press Enter to skip)"
-      : phase === "stack_input"
-        ? "Any stack preferences? (or press Enter to skip)"
-        : "";
-
-  return (
-    <div className="flex flex-1 flex-col overflow-hidden">
-      <StepShell
-        messages={messages}
-        chips={chips}
-        inputValue={inputValue}
-        onInputChange={setInputValue}
-        onSubmit={() => void handleSubmit()}
-        inputPlaceholder={placeholder}
-        inputDisabled={inputDisabled}
-      />
-      {phase === "selecting_tools" && (
-        <div className="border-border border-t px-6 py-3">
-          <button
-            type="button"
-            onClick={handleToolsConfirm}
-            className="text-muted-foreground text-xs underline-offset-2 hover:underline"
-          >
-            Skip (no external tools)
-          </button>
-        </div>
-      )}
-      {phase === "complete" && (
+  if (isComplete) {
+    return (
+      <div className="flex flex-1 flex-col overflow-hidden">
+        <StepShell
+          messages={toDisplayMessages(messages)}
+          inputValue=""
+          onInputChange={() => undefined}
+          onSubmit={() => undefined}
+          inputDisabled
+        />
         <div className="border-border border-t px-6 py-4">
           <button
             type="button"
@@ -170,6 +155,39 @@ export function IntegrationsChat({ projectId, initialData }: Props) {
           >
             <ArrowLeft className="size-4" />
             Back to Overview
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-1 flex-col overflow-hidden">
+      <StepShell
+        messages={toDisplayMessages(messages)}
+        chips={chips}
+        inputValue={inputValue}
+        onInputChange={setInputValue}
+        onSubmit={() => {
+          sendMessage({ text: inputValue });
+          setInputValue("");
+        }}
+        botTyping={status === "streaming" || status === "submitted" || extracting}
+        inputDisabled={status === "streaming" || status === "submitted" || extracting || isComplete}
+        inputPlaceholders={[
+          "Name a tool or service not in the list...",
+          "Any hosting or compliance requirements?",
+          "Stack preferences? (e.g. Next.js + Supabase)",
+        ]}
+      />
+      {!chipsSent && messages.length <= 1 && (
+        <div className="border-border border-t px-6 py-3">
+          <button
+            type="button"
+            onClick={handleToolsConfirm}
+            className="text-muted-foreground text-xs underline-offset-2 hover:underline"
+          >
+            Skip (no external tools)
           </button>
         </div>
       )}

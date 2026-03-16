@@ -92,7 +92,13 @@ export async function POST(req: Request) {
 
   const { diagram, context } = parse.data;
 
-  const requirementsSection = context?.guided_setup ? `\n\n${buildRequirementsBlock(context.guided_setup)}` : "";
+  const requirementsSection = context
+    ? `\n\n${buildRequirementsBlock({
+        wizardDescription: context.wizard_description,
+        appType: context.app_type,
+        guidedSetup: context.guided_setup ?? undefined,
+      })}`
+    : "";
 
   const userMessage = `System design diagram:
 ${JSON.stringify(diagram, null, 2)}

@@ -99,7 +99,13 @@ export async function POST(req: Request) {
   const sprintNumber = sprintId === "sprint-2" ? 2 : 3;
   const previousSprints = existingSprints.filter((s) => s.id !== sprintId);
 
-  const requirementsSection = context?.guided_setup ? `\n${buildRequirementsBlock(context.guided_setup)}` : "";
+  const requirementsSection = context
+    ? `\n${buildRequirementsBlock({
+        wizardDescription: context.wizard_description,
+        appType: context.app_type,
+        guidedSetup: context.guided_setup ?? undefined,
+      })}`
+    : "";
 
   const userMessage = `Sprint to generate tasks for:
 - ID: ${sprintId}
