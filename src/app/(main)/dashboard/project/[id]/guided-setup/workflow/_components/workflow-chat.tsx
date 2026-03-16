@@ -77,7 +77,7 @@ export function WorkflowChat({ projectId, initialData }: Props) {
           body: JSON.stringify({ messages: snapshot, step: "workflow", projectId }),
         });
         if (!res.ok) throw new Error("Extract failed");
-        const data = (await res.json()) as { mainGoal: string; mainFlow: string };
+        const data = (await res.json()) as { mainGoal: string; mainFlow: string; seniorbobSummary: string };
         await saveGuidedSetupStep(projectId, {
           step: "workflow",
           data: { ...data, completed: true },

@@ -86,7 +86,7 @@ export function FeaturesChat({ projectId, initialData }: Props) {
           body: JSON.stringify({ messages: snapshot, step: "features", projectId }),
         });
         if (!res.ok) throw new Error("Extract failed");
-        const data = (await res.json()) as { selected: string[]; custom: string[] };
+        const data = (await res.json()) as { selected: string[]; custom: string[]; seniorbobSummary: string };
         await saveGuidedSetupStep(projectId, {
           step: "features",
           data: { ...data, completed: true },

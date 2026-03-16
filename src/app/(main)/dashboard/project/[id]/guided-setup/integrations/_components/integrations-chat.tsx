@@ -86,7 +86,12 @@ export function IntegrationsChat({ projectId, initialData }: Props) {
           body: JSON.stringify({ messages: snapshot, step: "integrations", projectId }),
         });
         if (!res.ok) throw new Error("Extract failed");
-        const data = (await res.json()) as { tools: string[]; constraints: string; stackPreference: string };
+        const data = (await res.json()) as {
+          tools: string[];
+          constraints: string;
+          stackPreference: string;
+          seniorbobSummary: string;
+        };
         await saveGuidedSetupStep(projectId, {
           step: "integrations",
           data: { ...data, completed: true },

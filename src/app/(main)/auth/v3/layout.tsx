@@ -7,6 +7,7 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import { Moon, Sun } from "lucide-react";
 
+import { AtcShader } from "@/components/ui/atc-shader";
 import { Button } from "@/components/ui/button";
 import { persistPreference } from "@/lib/preferences/preferences-storage";
 import { usePreferencesStore } from "@/stores/preferences/preferences-provider";
@@ -30,6 +31,7 @@ export default function AuthLayout({ children }: Readonly<{ children: ReactNode 
 
   return (
     <main className="relative min-h-dvh overflow-hidden bg-background">
+      <AtcShader />
       {/* Background grain texture */}
       <div
         className="pointer-events-none fixed inset-0 z-0 opacity-[0.02] dark:opacity-[0.04]"
