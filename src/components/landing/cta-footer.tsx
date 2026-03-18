@@ -15,12 +15,12 @@ export const CTAFooter = () => {
       <div className="relative z-10 mx-auto max-w-3xl text-center">
         {/* CTA */}
         <h2 className="mb-6 font-normal text-3xl text-editorial text-zinc-950 leading-tight tracking-tight md:text-4xl lg:text-5xl dark:text-zinc-50">
-          Ready to architect?
+          Be the first to know.
         </h2>
         <p className="mb-10 text-base text-zinc-950/50 md:text-lg dark:text-zinc-50/50">
-          Start designing your system architecture today.
+          SeniorBob is launching soon. Join the waitlist
           <br />
-          No credit card required.
+          and get early access when we go live.
         </p>
 
         <div className="flex flex-col items-center justify-center gap-3 sm:flex-row sm:gap-4">
@@ -29,8 +29,8 @@ export const CTAFooter = () => {
             className="h-11 rounded-full border border-zinc-950/10 bg-zinc-950 px-6 font-normal text-sm text-zinc-50 hover:bg-zinc-950/90 dark:border-zinc-50/10 dark:bg-zinc-50 dark:text-zinc-950 dark:hover:bg-zinc-50/90"
             asChild
           >
-            <Link href="/auth/v3/signup">
-              Get started free
+            <Link href="/waitlist">
+              Join the waitlist
               <svg aria-hidden="true" className="ml-2 size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 7l5 5m0 0l-5 5m5-5H6" />
               </svg>
