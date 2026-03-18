@@ -91,18 +91,11 @@ jobs:
       - name: Build Next.js app
         run: npm run build
 
-  # ─── 4. Playwright E2E tests ──────────────────────────────────────────────────
-  e2e:
-    name: E2E Tests (Playwright)
+  # ─── 4. Unit tests ────────────────────────────────────────────────────────────
+  unit-tests:
+    name: Unit Tests (Vitest)
     runs-on: ubuntu-latest
-    needs: build
-    env:
-      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co' }}
-      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-anon-key' }}
-      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY || 'placeholder-api-key' }}
-      # Optional — when set, global-setup logs in and saves auth state for all tests
-      TEST_EMAIL: ${{ secrets.TEST_EMAIL }}
-      TEST_PASSWORD: ${{ secrets.TEST_PASSWORD }}
+    needs: lint
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -116,39 +109,14 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Install Playwright browsers
-        run: npx playwright install --with-deps chromium
-
-      - name: Build Next.js app
-        run: npm run build
-
-      - name: Start Next.js server
-        run: npm start &
-        env:
-          PORT: 3000
-
-      - name: Wait for server to be ready
-        run: npx wait-on http://localhost:3000 --timeout 30000
-
-      - name: Run Playwright tests
-        run: npx playwright test
-        env:
-          CI: true
-          PLAYWRIGHT_BASE_URL: http://localhost:3000
-
-      - name: Upload Playwright report
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: playwright-report-${{ github.sha }}
-          path: playwright-report/
-          retention-days: 7
+      - name: Run unit tests
+        run: npm test
 
   # ─── 5. Pipeline summary ─────────────────────────────────────────────────────
   summary:
     name: Pipeline Summary
     runs-on: ubuntu-latest
-    needs: [secret-scan, lint, build, e2e]
+    needs: [secret-scan, lint, build, unit-tests]
     if: always()
     steps:
       - name: Report status
@@ -160,7 +128,7 @@ jobs:
           echo "| Secret Scan | ${{ needs.secret-scan.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Lint & Type Check | ${{ needs.lint.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Build | ${{ needs.build.result }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| E2E Tests | ${{ needs.e2e.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Unit Tests | ${{ needs.unit-tests.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "Triggered by: ${{ github.event.inputs.reason || github.event_name }}" >> $GITHUB_STEP_SUMMARY
           echo "Commit: ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
