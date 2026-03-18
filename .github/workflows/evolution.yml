@@ -100,6 +100,9 @@ jobs:
       NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co' }}
       NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-anon-key' }}
       ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY || 'placeholder-api-key' }}
+      # Optional — when set, global-setup logs in and saves auth state for all tests
+      TEST_EMAIL: ${{ secrets.TEST_EMAIL }}
+      TEST_PASSWORD: ${{ secrets.TEST_PASSWORD }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
