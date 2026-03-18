@@ -56,7 +56,7 @@ export const THEME_PRESET_OPTIONS = [
     value: "terminal",
     primary: {
       light: "oklch(0.55 0.17 85)",
-      dark: "oklch(0.80 0.17 88)",
+      dark: "oklch(0.8 0.17 88)",
     },
   },
 ] as const;

@@ -280,10 +280,12 @@ html {
   0% {
     transform: translateZ(0) rotate(0);
   }
-  15%, 35% {
+  15%,
+  35% {
     transform: translateZ(0) rotate(90deg);
   }
-  65%, 85% {
+  65%,
+  85% {
     transform: translateZ(0) rotate(270deg);
   }
   100% {
@@ -292,19 +294,36 @@ html {
 }
 
 /* Animation delay utilities */
-.animation-delay-100 { animation-delay: 100ms; }
-.animation-delay-200 { animation-delay: 200ms; }
-.animation-delay-300 { animation-delay: 300ms; }
-.animation-delay-400 { animation-delay: 400ms; }
-.animation-delay-500 { animation-delay: 500ms; }
-.animation-delay-600 { animation-delay: 600ms; }
-.animation-delay-700 { animation-delay: 700ms; }
-.animation-delay-800 { animation-delay: 800ms; }
+.animation-delay-100 {
+  animation-delay: 100ms;
+}
+.animation-delay-200 {
+  animation-delay: 200ms;
+}
+.animation-delay-300 {
+  animation-delay: 300ms;
+}
+.animation-delay-400 {
+  animation-delay: 400ms;
+}
+.animation-delay-500 {
+  animation-delay: 500ms;
+}
+.animation-delay-600 {
+  animation-delay: 600ms;
+}
+.animation-delay-700 {
+  animation-delay: 700ms;
+}
+.animation-delay-800 {
+  animation-delay: 800ms;
+}
 
 /* Canvas background patterns */
 .bg-canvas-grid {
-  background-image: linear-gradient(var(--canvas-grid, oklch(0.20 0.01 60)) 1px, transparent 1px),
-    linear-gradient(90deg, var(--canvas-grid, oklch(0.20 0.01 60)) 1px, transparent 1px);
+  background-image:
+    linear-gradient(var(--canvas-grid, oklch(0.2 0.01 60)) 1px, transparent 1px),
+    linear-gradient(90deg, var(--canvas-grid, oklch(0.2 0.01 60)) 1px, transparent 1px);
   background-size: 40px 40px;
 }
 
@@ -370,10 +389,15 @@ html {
 /* Editorial-style typography */
 .text-editorial {
   letter-spacing: -0.03em;
-  font-feature-settings: "ss01" on, "ss02" on;
+  font-feature-settings:
+    "ss01" on,
+    "ss02" on;
 }
 
 /* Subtle border glow on focus */
 .focus-glow:focus-visible {
-  box-shadow: 0 0 0 2px var(--background), 0 0 0 4px var(--ring), 0 0 20px var(--canvas-glow);
+  box-shadow:
+    0 0 0 2px var(--background),
+    0 0 0 4px var(--ring),
+    0 0 20px var(--canvas-glow);
 }

@@ -54,10 +54,10 @@ export const Hero = () => {
 
             {/* Main headline */}
             <h1 className="mb-6 font-normal text-5xl text-editorial text-zinc-950 leading-[1.1] tracking-tight md:text-6xl lg:text-7xl dark:text-zinc-50">
-              AI can write the code.
+              Claude can write the code.
               <br />
               <span className="bg-gradient-to-r from-primary to-amber-500 bg-clip-text font-normal text-transparent dark:to-amber-300">
-                SeniorBob makes the project buildable.
+                SeniorBob designs your system.
               </span>
             </h1>
 
