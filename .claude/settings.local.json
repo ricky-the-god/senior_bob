@@ -107,7 +107,8 @@
       "Bash(find \"C:\\\\Users\\\\RICKY\\\\Desktop\\\\senior_bob\\\\src\\\\app\\\\\\(main\\)\\\\dashboard\\\\project\\\\[id]\\\\system-design\" -maxdepth 1 -name \"layout.tsx\")",
       "Bash(ls -la \"C:\\\\Users\\\\RICKY\\\\Desktop\\\\senior_bob\\\\src\\\\app\\\\\\(main\\)\\\\dashboard\\\\project\\\\[id]\\\\system-design\")",
       "Bash(ls:*)",
-      "Bash(npx tsx:*)"
+      "Bash(npx tsx:*)",
+      "Bash(npm run:*)"
     ]
   }
 }
