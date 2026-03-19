@@ -26,6 +26,7 @@ const ExistingSprintSchema = z.object({
 });
 
 const RequestSchema = z.object({
+  projectId: z.string().uuid(),
   sprintId: z.enum(["sprint-2", "sprint-3"]),
   existingSprints: z.array(ExistingSprintSchema).min(1).max(3),
   diagram: z
@@ -91,7 +92,16 @@ export async function POST(req: Request) {
   const parse = RequestSchema.safeParse(body);
   if (!parse.success) return new Response("Bad Request", { status: 400 });
 
-  const { sprintId, existingSprints, diagram, context } = parse.data;
+  const { projectId, sprintId, existingSprints, diagram, context } = parse.data;
+
+  // Ownership check — prevent generating sprint tasks for another user's project
+  const { data: project } = await supabase
+    .from("projects")
+    .select("id")
+    .eq("id", projectId)
+    .eq("owner_id", user.id)
+    .single();
+  if (!project) return new Response("Forbidden", { status: 403 });
 
   const targetSprint = existingSprints.find((s) => s.id === sprintId);
   if (!targetSprint) return new Response("Sprint not found", { status: 400 });

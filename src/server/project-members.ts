@@ -17,7 +17,16 @@ async function getAuthenticatedUser() {
 
 export async function addMember(projectId: string, email: string) {
   const parsed = emailSchema.parse(email);
-  const { supabase } = await getAuthenticatedUser();
+  const { supabase, user } = await getAuthenticatedUser();
+
+  // Ownership check — only the project owner may add members
+  const { data: ownedProject } = await supabase
+    .from("projects")
+    .select("id")
+    .eq("id", projectId)
+    .eq("owner_id", user.id)
+    .single();
+  if (!ownedProject) throw new Error("Project not found or access denied.");
 
   // Look up the user by email via the admin API is not available client-side.
   // We use a Supabase RPC function "get_user_id_by_email" that must be created.
