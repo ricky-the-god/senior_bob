@@ -5,6 +5,7 @@ import { z } from "zod";
 import type { OutputFile } from "@/lib/project-types";
 import { parseProjectMeta } from "@/lib/project-types";
 import { getDiagram } from "@/lib/queries/get-diagram";
+import { checkRateLimit } from "@/lib/rate-limit";
 import { classifyProject } from "@/lib/retrieval/classify";
 import { getPhase3Library } from "@/lib/retrieval/libraries";
 import { createClient } from "@/lib/supabase/server";
@@ -66,6 +67,11 @@ export async function POST(req: Request) {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return new Response("Unauthorized", { status: 401 });
+
+  // Rate limit: max 20 requests per 60 seconds per user (best-effort, in-memory)
+  if (!checkRateLimit(user.id, "output-pack-generate", 20, 60_000)) {
+    return new Response("Too Many Requests", { status: 429 });
+  }
 
   // Fetch project with ownership check
   const { data: project, error: projectError } = await supabase

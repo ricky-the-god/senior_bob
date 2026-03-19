@@ -3,6 +3,7 @@ import { generateObject } from "ai";
 import { z } from "zod";
 
 import { APP_TYPE_IDS, BACKEND_IDS, INFRA_IDS, USER_SCALE_IDS } from "@/lib/project-types";
+import { checkRateLimit } from "@/lib/rate-limit";
 import { createClient } from "@/lib/supabase/server";
 
 export const maxDuration = 15;
@@ -36,6 +37,11 @@ export async function POST(req: Request) {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return new Response("Unauthorized", { status: 401 });
+
+  // Rate limit: max 10 requests per 60 seconds per user (best-effort, in-memory)
+  if (!checkRateLimit(user.id, "wizard-recommend", 10, 60_000)) {
+    return new Response("Too Many Requests", { status: 429 });
+  }
 
   const body = await req.json().catch(() => null);
   const parse = RequestSchema.safeParse(body);

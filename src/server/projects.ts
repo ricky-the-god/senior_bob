@@ -178,8 +178,9 @@ export async function saveGuidedSetupStep(
 }
 
 export async function deleteProject(id: string) {
+  const { id: pid } = z.object({ id: z.string().uuid() }).parse({ id });
   const { supabase, user } = await getAuthenticatedUser();
-  const { error } = await supabase.from("projects").delete().eq("id", id).eq("owner_id", user.id);
+  const { error } = await supabase.from("projects").delete().eq("id", pid).eq("owner_id", user.id);
   if (error) throw new Error(error.message);
   redirect("/dashboard/default");
 }

@@ -11,6 +11,20 @@ export type ProjectMember = {
 
 export async function getProjectMembers(projectId: string): Promise<ProjectMember[]> {
   const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return [];
+
+  // Verify the caller owns this project
+  const { data: project } = await supabase
+    .from("projects")
+    .select("id")
+    .eq("id", projectId)
+    .eq("owner_id", user.id)
+    .single();
+  if (!project) return [];
+
   const { data, error } = await supabase
     .from("project_members")
     .select("id, role, user_id, user:user_id(email, raw_user_meta_data)")

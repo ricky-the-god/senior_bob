@@ -3,6 +3,7 @@ import { generateObject } from "ai";
 import { z } from "zod";
 
 import { fetchFullContext } from "@/lib/ai-context";
+import { checkRateLimit } from "@/lib/rate-limit";
 import { createClient } from "@/lib/supabase/server";
 
 export const maxDuration = 30;
@@ -69,6 +70,11 @@ export async function POST(req: Request) {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return new Response("Unauthorized", { status: 401 });
+
+  // Rate limit: max 20 requests per 60 seconds per user (best-effort, in-memory)
+  if (!checkRateLimit(user.id, "diagram-ai-generate", 20, 60_000)) {
+    return new Response("Too Many Requests", { status: 429 });
+  }
 
   const parse = RequestSchema.safeParse(await req.json());
   if (!parse.success) return new Response("Bad Request", { status: 400 });

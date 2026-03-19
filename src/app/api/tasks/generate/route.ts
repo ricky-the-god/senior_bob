@@ -8,6 +8,7 @@ import { createClient } from "@/lib/supabase/server";
 export const maxDuration = 30;
 
 const RequestSchema = z.object({
+  projectId: z.string().uuid(),
   diagram: z.object({
     nodes: z.array(z.unknown()).max(100),
     edges: z.array(z.unknown()).max(200),
@@ -90,7 +91,16 @@ export async function POST(req: Request) {
   const parse = RequestSchema.safeParse(body);
   if (!parse.success) return new Response("Bad Request", { status: 400 });
 
-  const { diagram, context } = parse.data;
+  const { projectId, diagram, context } = parse.data;
+
+  // Ownership check — prevent generating tasks for another user's project
+  const { data: project } = await supabase
+    .from("projects")
+    .select("id")
+    .eq("id", projectId)
+    .eq("owner_id", user.id)
+    .single();
+  if (!project) return new Response("Forbidden", { status: 403 });
 
   const requirementsSection = context
     ? `\n\n${buildRequirementsBlock({

@@ -3,12 +3,26 @@ import { convertToModelMessages, streamText, type UIMessage } from "ai";
 import { z } from "zod";
 
 import { fetchFullContext } from "@/lib/ai-context";
+import { checkRateLimit } from "@/lib/rate-limit";
 import { createClient } from "@/lib/supabase/server";
 
 export const maxDuration = 30;
 
+// UIMessage shape from @ai-sdk/react (id + parts[] required at runtime).
+// We validate the array length and cap text content to prevent token bombs,
+// while keeping z.unknown() per element so the UIMessage cast below compiles.
+const MessagePartSchema = z.object({
+  type: z.string(),
+  text: z.string().max(4000).optional(),
+});
+const UIMessageSchema = z.object({
+  id: z.string(),
+  role: z.string(),
+  parts: z.array(MessagePartSchema).optional(),
+  content: z.string().max(4000).optional(),
+});
 const RequestSchema = z.object({
-  messages: z.array(z.unknown()),
+  messages: z.array(UIMessageSchema).max(50),
   currentDiagram: z
     .object({
       nodes: z.array(z.unknown()).max(100),
@@ -52,6 +66,11 @@ export async function POST(req: Request) {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return new Response("Unauthorized", { status: 401 });
+
+  // Rate limit: max 20 requests per 60 seconds per user (best-effort, in-memory)
+  if (!checkRateLimit(user.id, "diagram-ai", 20, 60_000)) {
+    return new Response("Too Many Requests", { status: 429 });
+  }
 
   const parse = RequestSchema.safeParse(await req.json());
   if (!parse.success) return new Response("Bad Request", { status: 400 });
