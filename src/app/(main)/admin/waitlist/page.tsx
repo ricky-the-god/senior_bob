@@ -1,17 +1,12 @@
 import { redirect } from "next/navigation";
 
-import { getAuthenticatedUser } from "@/server/auth";
 import { getWaitlist } from "@/server/waitlist";
 
 export const metadata = { title: "Waitlist — Admin" };
 
 export default async function AdminWaitlistPage() {
-  const { user } = await getAuthenticatedUser().catch(() => redirect("/auth/v3/login"));
-
-  const adminEmail = process.env.ADMIN_EMAIL;
-  if (!adminEmail || user.email !== adminEmail) redirect("/unauthorized");
-
-  const entries = await getWaitlist();
+  // getWaitlist enforces auth + admin check internally — throws "Forbidden" if not admin
+  const entries = await getWaitlist().catch(() => redirect("/unauthorized"));
 
   return (
     <div className="mx-auto max-w-3xl px-6 py-16">
@@ -73,7 +68,6 @@ export default async function AdminWaitlistPage() {
         </div>
       )}
 
-      {/* Export hint */}
       {entries.length > 0 && (
         <p className="mt-4 font-mono-tight text-[10px] text-zinc-950/25 dark:text-zinc-50/25">
           Export via Supabase dashboard → Table Editor → waitlist → Export CSV

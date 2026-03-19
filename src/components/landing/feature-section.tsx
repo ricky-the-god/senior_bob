@@ -410,14 +410,14 @@ export const FeatureSection = () => {
         {/* Feature rows */}
         <div className="flex flex-col">
           {features.map((feature, index) => {
-            const isEven = index % 2 === 1;
+            const isAlternate = index % 2 === 1;
             return (
               <div key={feature.number}>
                 {index > 0 && <div className="border-t border-zinc-950/8 dark:border-zinc-50/8" />}
-                <div className={`grid grid-cols-1 gap-12 py-16 md:grid-cols-2 md:gap-16 lg:gap-24 ${isEven ? "" : ""}`}>
+                <div className="grid grid-cols-1 gap-12 py-16 md:grid-cols-2 md:gap-16 lg:gap-24">
                   {/* Text half */}
                   <motion.div
-                    className={`flex flex-col justify-center ${isEven ? "md:order-2" : "md:order-1"}`}
+                    className={`flex flex-col justify-center ${isAlternate ? "md:order-2" : "md:order-1"}`}
                     custom={index}
                     initial="hidden"
                     whileInView="visible"
@@ -462,7 +462,7 @@ export const FeatureSection = () => {
 
                   {/* Visual half */}
                   <motion.div
-                    className={`${isEven ? "md:order-1" : "md:order-2"}`}
+                    className={`${isAlternate ? "md:order-1" : "md:order-2"}`}
                     custom={index}
                     initial="hidden"
                     whileInView="visible"
